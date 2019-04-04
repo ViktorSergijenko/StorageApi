@@ -1,0 +1,14 @@
+C:\Users\PC\source\repos\StorageAPI\StorageAPI\bin\Debug\netcoreapp2.2\StorageAPI.deps.json
+C:\Users\PC\source\repos\StorageAPI\StorageAPI\bin\Debug\netcoreapp2.2\StorageAPI.runtimeconfig.json
+C:\Users\PC\source\repos\StorageAPI\StorageAPI\bin\Debug\netcoreapp2.2\StorageAPI.runtimeconfig.dev.json
+C:\Users\PC\source\repos\StorageAPI\StorageAPI\bin\Debug\netcoreapp2.2\StorageAPI.dll
+C:\Users\PC\source\repos\StorageAPI\StorageAPI\bin\Debug\netcoreapp2.2\StorageAPI.pdb
+C:\Users\PC\source\repos\StorageAPI\StorageAPI\obj\Debug\netcoreapp2.2\StorageAPI.csproj.CoreCompileInputs.cache
+C:\Users\PC\source\repos\StorageAPI\StorageAPI\obj\Debug\netcoreapp2.2\StorageAPI.RazorAssemblyInfo.cache
+C:\Users\PC\source\repos\StorageAPI\StorageAPI\obj\Debug\netcoreapp2.2\StorageAPI.RazorAssemblyInfo.cs
+C:\Users\PC\source\repos\StorageAPI\StorageAPI\obj\Debug\netcoreapp2.2\StorageAPI.AssemblyInfoInputs.cache
+C:\Users\PC\source\repos\StorageAPI\StorageAPI\obj\Debug\netcoreapp2.2\StorageAPI.AssemblyInfo.cs
+C:\Users\PC\source\repos\StorageAPI\StorageAPI\obj\Debug\netcoreapp2.2\StorageAPI.RazorTargetAssemblyInfo.cache
+C:\Users\PC\source\repos\StorageAPI\StorageAPI\obj\Debug\netcoreapp2.2\StorageAPI.dll
+C:\Users\PC\source\repos\StorageAPI\StorageAPI\obj\Debug\netcoreapp2.2\StorageAPI.pdb
+C:\Users\PC\source\repos\StorageAPI\StorageAPI\obj\Debug\netcoreapp2.2\StorageAPI.csprojAssemblyReference.cache
