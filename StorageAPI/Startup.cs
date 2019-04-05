@@ -13,6 +13,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using StorageAPI.Context;
 using StorageAPI.Services;
+using AutoMapper;
 
 namespace StorageAPI
 {
@@ -29,6 +30,7 @@ namespace StorageAPI
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddDbContext<StorageContext>(opt => opt.UseSqlServer(@"Server=(localdb)\mssqllocaldb;Database=WarehouseStorage;Trusted_Connection=True;"));
+            services.AddAutoMapper();
             services.AddMvc()
                 .AddJsonOptions(o => o.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore)
                 .SetCompatibilityVersion(CompatibilityVersion.Version_2_2);

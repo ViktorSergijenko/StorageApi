@@ -8,18 +8,23 @@ using Microsoft.EntityFrameworkCore;
 using StorageAPI.Models;
 using ZXing.QrCode;
 using System.IO;
-
+using AutoMapper;
+using Microsoft.AspNetCore.Mvc;
 
 namespace StorageAPI.Services
 {
     public class WarehouseService
     {
         protected StorageContext DB { get; private set; }
+        private readonly IMapper Mapper;
 
         public WarehouseService(IServiceProvider service)
         {
             DB = service.GetService<StorageContext>();
+            Mapper = service.GetRequiredService<IMapper>();
         }
+
+        #region BaseCrud
 
         /// <summary>
         /// Method gets warehouse by id
@@ -42,26 +47,64 @@ namespace StorageAPI.Services
             }
         }
         /// <summary>
-        /// Method add a new warehouse to DB
+        /// Method add or modifies a  warehouse
         /// </summary>
-        /// <param name="newWarehouse">Warehouse object that we want to add</param>
-        /// <returns>New warehouse with id included</returns>
-        public async Task<Warehouse> AddWarehouse(Warehouse newWarehouse) {
-            // Adding new warehouse to DB
-            DB.WarehouseDB.Add(newWarehouse);
-            // Saving changes in DB
-            await DB.SaveChangesAsync();
+        /// <param name="newWarehouse">Warehouse object that we want to add or modifie</param>
+        /// <returns>New warehouse with id included or modified object</returns>
+        public async Task<Warehouse> SaveWarehouse(Warehouse warehouse) {
 
-
-            var createdWarehouseWithQrCode = await AddQrCodeForWarehouse(newWarehouse);
-            return createdWarehouseWithQrCode;
+            // If warehouse does not have id, that means that it's a new entity, and we need an add functionality
+            if (warehouse.Id != null)
+            {
+                // Adding new warehouse to DB
+                DB.WarehouseDB.Add(warehouse);
+                // Saving changes in DB
+                await DB.SaveChangesAsync();
+                // Generating QR code for warehouse
+                warehouse = await AddQrCodeForWarehouse(warehouse);
+            }
+            // If warehouse has an id, that means that it's  not a new entity, and we need an edit functionality
+            else
+            {
+                // Getting object from DB that has similar id like in our param variable
+                var warehouseFromDb = await DB.WarehouseDB.FirstOrDefaultAsync(x => x.Id == warehouse.Id);
+                // Using mapper to edit all fields
+                warehouse = Mapper.Map(warehouse, warehouseFromDb);
+                // Updating DB
+                DB.WarehouseDB.Update(warehouse);
+                // Saving changes in DB
+                await DB.SaveChangesAsync();
+            }
+            // Returning object
+            return warehouse;
         }
+
+        /// <summary>
+        /// Method deletes warehouse from DB
+        /// </summary>
+        /// <param name="id">Id of an warehouse to delete</param>
+        /// <returns></returns>
+        public async Task DeleteWarehouse(Guid id) {
+            // Getting warehouse from DB with the same id like in param
+            var warehouse = await DB.WarehouseDB.FirstOrDefaultAsync(x => x.Id == id);
+            // Checkinf if warehouse variable for null
+            if (warehouse == null)
+            {
+                // If it's null then we throw exception
+                 throw new Exception("Not found");
+            }
+            // Removing warehouse from DB
+            DB.WarehouseDB.Remove(warehouse);
+            // Saving changes
+            await DB.SaveChangesAsync();
+        }
+        #endregion BaseCrud
+
+        #region QrCodeGenerator
 
         public async Task<Warehouse> AddQrCodeForWarehouse(Warehouse createdWarehouse) {
             
-           
-
-            var QrcodeContent = $"http://localhost:4200/api/{createdWarehouse.Id}";
+            var QrcodeContent = $"http://localhost:4200/api/warehouse/{createdWarehouse.Id}";
             var width = 250; // width of the Qr Code
             var height = 250; // height of the Qr Code
             var margin = 0;
@@ -100,7 +143,14 @@ namespace StorageAPI.Services
 
             }
         }
+        #endregion QrCodeGenerator
 
+        #region Filtration method
+        /// <summary>
+        /// Method gets filtered warehouse query, depednding on the filter option
+        /// </summary>
+        /// <param name="filterOption">Filter option, by which filtration will be done</param>
+        /// <returns></returns>
         public async Task<List<Warehouse>> FilterWarehouses(string filterOption) {
         
             // Getting our warehouse query, that we will filter
@@ -123,5 +173,7 @@ namespace StorageAPI.Services
             return warehouseQuery;
 
         }
+
+        #endregion Filtration method
     }
 }

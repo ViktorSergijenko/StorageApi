@@ -47,15 +47,15 @@ namespace StorageAPI.Controllers
         }
 
         /// <summary>
-        /// Method adds a new warehouse in to DB
+        /// Method adds or modifies a  warehouse in DB
         /// </summary>
-        /// <param name="warehouse">Warehouse object that we want to add</param>
-        /// <returns>New warehouse</returns>
+        /// <param name="warehouse">Warehouse object that we want to add or edit</param>
+        /// <returns> Warehouse object</returns>
         [HttpPost]
         public async Task<ActionResult> CreateWarehouse([FromBody] Warehouse warehouse)
         {
                 // Adding new warehouse by calling a method that will add it to DB
-                var newWarehouse = await WarehouseService.AddWarehouse(warehouse);
+                var newWarehouse = await WarehouseService.SaveWarehouse(warehouse);
                 // Returning new warehouse
                 return Ok(newWarehouse);
         }

@@ -5,8 +5,18 @@ using System.Threading.Tasks;
 
 namespace StorageAPI.Models
 {
+    /// <summary>
+    /// Warehouse model
+    /// </summary>
     public class Warehouse: BaseEntity
     {
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        public Warehouse() {
+            // Initializing our catalog list with empty value to avoid problems related with null references
+            Catalogs = new List<Catalog>();
+        }
         /// <summary>
         /// Name of the warehouse
         /// </summary>
@@ -15,6 +25,10 @@ namespace StorageAPI.Models
         /// Address where warehouse is located
         /// </summary>
         public string Address { get; set; }
+        /// <summary>
+        /// Location name
+        /// </summary>
+        public string Location { get; set; }
         /// <summary>
         /// Variable that stores QR code as base64
         /// </summary>
@@ -27,8 +41,15 @@ namespace StorageAPI.Models
         /// Warehouse type flag, that indicates is it a main warehouse or not
         /// </summary>
         public WarehouseType Type { get; set; }
+        /// <summary>
+        /// List of catalogs with products that are stored in warehouse
+        /// </summary>
+        public List<Catalog> Catalogs { get; set; }
     }
 
+    /// <summary>
+    /// Enum that is used as a flag to indicate warehouse type
+    /// </summary>
     public enum WarehouseType {
         MainWarehouse,
         SimpleWarehouse
