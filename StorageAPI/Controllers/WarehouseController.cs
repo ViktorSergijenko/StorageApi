@@ -9,6 +9,7 @@ using StorageAPI.Context;
 using StorageAPI.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Cors;
+using AutoMapper;
 
 namespace StorageAPI.Controllers
 {
@@ -20,12 +21,18 @@ namespace StorageAPI.Controllers
       private WarehouseService WarehouseService { get; set; }
         protected StorageContext DB { get; private set; }
 
+
         public WarehouseController(IServiceProvider service)
         {
-            WarehouseService = service.GetService<WarehouseService>();
-            DB = service.GetService<StorageContext>();
+            WarehouseService = service.GetRequiredService<WarehouseService>();
+            DB = service.GetRequiredService<StorageContext>();
         }
 
+        #region Base crud
+        /// <summary>
+        /// Method gets all Warehouses from DB
+        /// </summary>
+        /// <returns></returns>
         [HttpGet]
         public async Task<ActionResult<List<Warehouse>>> GetAllWarehouses()
         {
@@ -61,18 +68,35 @@ namespace StorageAPI.Controllers
         }
 
         /// <summary>
+        /// Method deletes warehouse from DB
+        /// </summary>
+        /// <param name="id">Id of an warehouse that we want to delete</param>
+        /// <returns></returns>
+        [HttpDelete("{id}")]
+        public async Task<ActionResult> FilterWarehouses(Guid id)
+        {
+            // Calling method that will delete warehouse from DB
+            await WarehouseService.DeleteWarehouse(id);
+            // Returning filtered warehouse list
+            return Ok();
+        }
+        #endregion Base crud
+
+        /// <summary>
         /// Method filters warehouses by filter option
         /// </summary>
         /// <param name="option">Filter option, by which filtration will be done</param>
         /// <returns>Filtered warehouse list</returns>
         [HttpPost("filteredWarehouse")]
-        public async Task<ActionResult> FilterWarehouses([FromBody] string option)
+        public async Task<ActionResult> FilterWarehouses([FromBody] FilterSorting filterSorting)
         {
+
             // Filtering warehouse query by calling method that will filter it
-            var newWarehouse = await WarehouseService.FilterWarehouses(option);
+            var newWarehouse = await WarehouseService.FilterWarehouses(filterSorting);
             // Returning filtered warehouse list
             return Ok(newWarehouse);
         }
+
 
 
     }
