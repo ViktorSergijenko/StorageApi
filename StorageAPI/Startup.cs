@@ -14,6 +14,7 @@ using Microsoft.Extensions.Options;
 using StorageAPI.Context;
 using StorageAPI.Services;
 using AutoMapper;
+using StorageAPI.Configs;
 
 namespace StorageAPI
 {
@@ -30,7 +31,7 @@ namespace StorageAPI
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddDbContext<StorageContext>(opt => opt.UseSqlServer(@"Server=(localdb)\mssqllocaldb;Database=WarehouseStorage;Trusted_Connection=True;"));
-            services.AddAutoMapper();
+            services.AddAutoMapper(typeof(Startup).Assembly);
             services.AddMvc()
                 .AddJsonOptions(o => o.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore)
                 .SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
@@ -46,8 +47,10 @@ namespace StorageAPI
             );
 
             #region Services injections
-            services.AddScoped<StorageContext, StorageContext>();
-            services.AddScoped<WarehouseService, WarehouseService>();
+            services.AddSingleton<IConfiguration>(o => Configuration);
+            services.AddScoped<StorageContext>();
+            services.AddScoped<WarehouseService>();
+            AutoMapperConfig.RegisterMappings(services.BuildServiceProvider());
             #endregion Services injections
 
         }
