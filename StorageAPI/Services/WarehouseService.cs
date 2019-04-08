@@ -9,19 +9,20 @@ using StorageAPI.Models;
 using ZXing.QrCode;
 using System.IO;
 using AutoMapper;
-using Microsoft.AspNetCore.Mvc;
+
 
 namespace StorageAPI.Services
 {
     public class WarehouseService
     {
         protected StorageContext DB { get; private set; }
-        private readonly IMapper Mapper;
+
+
 
         public WarehouseService(IServiceProvider service)
         {
             DB = service.GetService<StorageContext>();
-            Mapper = service.GetRequiredService<IMapper>();
+
         }
 
         #region BaseCrud
@@ -54,7 +55,7 @@ namespace StorageAPI.Services
         public async Task<Warehouse> SaveWarehouse(Warehouse warehouse) {
 
             // If warehouse does not have id, that means that it's a new entity, and we need an add functionality
-            if (warehouse.Id != null)
+            if (warehouse.Id == null || warehouse.Id.Equals(Guid.Empty))
             {
                 // Adding new warehouse to DB
                 DB.WarehouseDB.Add(warehouse);
@@ -66,12 +67,13 @@ namespace StorageAPI.Services
             // If warehouse has an id, that means that it's  not a new entity, and we need an edit functionality
             else
             {
+                
                 // Getting object from DB that has similar id like in our param variable
                 var warehouseFromDb = await DB.WarehouseDB.FirstOrDefaultAsync(x => x.Id == warehouse.Id);
                 // Using mapper to edit all fields
-                warehouse = Mapper.Map(warehouse, warehouseFromDb);
+                Mapper.Map(warehouse, warehouseFromDb);
                 // Updating DB
-                DB.WarehouseDB.Update(warehouse);
+                DB.WarehouseDB.Update(warehouseFromDb);
                 // Saving changes in DB
                 await DB.SaveChangesAsync();
             }
@@ -151,18 +153,19 @@ namespace StorageAPI.Services
         /// </summary>
         /// <param name="filterOption">Filter option, by which filtration will be done</param>
         /// <returns></returns>
-        public async Task<List<Warehouse>> FilterWarehouses(string filterOption) {
+        public async Task<List<Warehouse>> FilterWarehouses(FilterSorting filterSorting) {
         
             // Getting our warehouse query, that we will filter
             var warehouseQuery = await DB.WarehouseDB.ToListAsync();
             // Checking if our filter option is null
-            if (!String.IsNullOrEmpty(filterOption))
+            if (!String.IsNullOrEmpty(filterSorting.FilterOption))
             {
                 // If it's not null, then we set this option to lover case
-                var filter = filterOption.ToLower();
+                var filter = filterSorting.FilterOption.ToLower();
                 // Filtering our query, where warehouse address or name contains something similar to our option
-                warehouseQuery = warehouseQuery.Where(x => x.Name.ToLower().Contains(filterOption) 
-                || x.Address.ToLower().Contains(filterOption)).ToList();
+                warehouseQuery = warehouseQuery.Where(x => x.Name.ToLower().Contains(filter) 
+                || x.Address.ToLower().Contains(filter)
+                || x.Location.ToLower().Contains(filter)).ToList();
             }
             else
             {
