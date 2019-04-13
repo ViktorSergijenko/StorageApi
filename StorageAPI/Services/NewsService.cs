@@ -63,16 +63,39 @@ namespace StorageAPI.Services
             {
 
                 // Getting object from DB that has similar id like in our param variable
-                var newsFromDb = await DB.WarehouseDB.FirstOrDefaultAsync(x => x.Id == news.Id);
+                var newsFromDb = await DB.NewsDB.FirstOrDefaultAsync(x => x.Id == news.Id);
                 // Using mapper to edit all fields
                 Mapper.Map(news, newsFromDb);
                 // Updating DB
-                DB.WarehouseDB.Update(newsFromDb);
+                DB.NewsDB.Update(newsFromDb);
                 // Saving changes in DB
                 await DB.SaveChangesAsync();
             }
             // Returning object
             return news;
+        }
+
+        public async Task<News> toggleNewsFixedProblemFlag(Guid id)
+        {
+            // Getting warehouse news from DB
+            var warehouseNews = await DB.NewsDB.FirstOrDefaultAsync(x => x.Id == id);
+            // Checking if it's not null
+            if (warehouseNews == null)
+            {
+                // If it's null, then we will throw new exception
+                throw new Exception("Not found");
+            }
+            // If object was found, then we return it
+            else
+            {
+                // Cahnging flag value to true
+                warehouseNews.FixedProblem = true;
+                // Updating DB
+                DB.NewsDB.Update(warehouseNews);
+                // Saving changes in DB
+                await DB.SaveChangesAsync();
+                return warehouseNews;
+            }
         }
     }
 }
