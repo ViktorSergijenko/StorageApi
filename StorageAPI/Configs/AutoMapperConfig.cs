@@ -16,7 +16,8 @@ namespace StorageAPI.Configs
                 // This is needed for automapper to be able create models
                 // with injectable services
                 c.AddProfile<WarehouseProfile>();
-
+                c.AddProfile<CatalogProfile>();
+                c.AddProfile<NewsProfile>();
             });
         }
     }

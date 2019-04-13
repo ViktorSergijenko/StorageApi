@@ -9,7 +9,7 @@ namespace StorageAPI.Configs.Profiles
 {
     public class CatalogProfile : Profile
     {
-        CatalogProfile() {
+       public CatalogProfile() {
             CreateMap<Catalog, Catalog>();
 
         }
