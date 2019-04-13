@@ -38,6 +38,23 @@ namespace StorageAPI.Context
                 ;
             #endregion Catalog model builder
 
+            #region Product model builder
+            modelBuilder.Entity<Product>()
+                .HasOne(x => x.Catalog)
+                .WithMany(x => x.Products)
+                .HasForeignKey(x => x.CatalogId)
+                .IsRequired()
+                ;
+            #endregion Product model builder
+
+            #region News model builder
+            modelBuilder.Entity<News>()
+                .HasOne(x => x.Warehouse)
+                .WithMany(x => x.News)
+                .HasForeignKey(x => x.WarehouseId)
+                ;
+            #endregion News model builder
+
             base.OnModelCreating(modelBuilder);
         }
         #endregion Model builder
@@ -46,6 +63,7 @@ namespace StorageAPI.Context
         public DbSet<Warehouse> WarehouseDB { get; set; }
         public DbSet<Catalog> CatalogDB { get; set; }
         public DbSet<Product> ProductDB { get; set; }
+        public DbSet<News> NewsDB { get; set; }
         #endregion Db set
     }
 }
