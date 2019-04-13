@@ -14,7 +14,7 @@ using AutoMapper;
 namespace StorageAPI.Controllers
 {
     [Route("api/[controller]")]
-    [EnableCors("AllowAnyOrigin")]
+    [EnableCors("AllowOneOrigin")]
     [ApiController]
     public class WarehouseController : ControllerBase
     {
