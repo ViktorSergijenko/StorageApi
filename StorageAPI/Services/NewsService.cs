@@ -52,8 +52,13 @@ namespace StorageAPI.Services
             // If warehouse does not have id, that means that it's a new entity, and we need an add functionality
             if (news.Id == null || news.Id.Equals(Guid.Empty))
             {
+                var house = await DB.WarehouseDB.FirstOrDefaultAsync(x => x.Id == news.WarehouseId);
+                house.HasProblems = true;
                 // Adding new warehouse to DB
                 DB.NewsDB.Add(news);
+                DB.WarehouseDB.Update(house);
+
+
                 // Saving changes in DB
                 await DB.SaveChangesAsync();
 
@@ -78,7 +83,7 @@ namespace StorageAPI.Services
         public async Task<News> toggleNewsFixedProblemFlag(Guid id)
         {
             // Getting warehouse news from DB
-            var warehouseNews = await DB.NewsDB.FirstOrDefaultAsync(x => x.Id == id);
+            var warehouseNews = await DB.NewsDB.Include(o => o.Warehouse).FirstOrDefaultAsync(x => x.Id == id);
             // Checking if it's not null
             if (warehouseNews == null)
             {
@@ -92,6 +97,25 @@ namespace StorageAPI.Services
                 warehouseNews.FixedProblem = true;
                 // Updating DB
                 DB.NewsDB.Update(warehouseNews);
+                // Saving changes in DB, because next step will also include DB operations
+                await DB.SaveChangesAsync();
+                // Checking does house in that we just toggled flag, still hase some news/problems that was not resolved
+                var hasProblems = await DB.WarehouseDB.AnyAsync(x => x.News.Any(o => o.FixedProblem != true));
+                if (hasProblems)
+                {
+                    // If has, then we get this house and change it flag hasProblems to true
+                   var house =  await DB.WarehouseDB.FirstOrDefaultAsync(x => x.Id == warehouseNews.WarehouseId);
+                    house.HasProblems = true;
+                    DB.WarehouseDB.Update(house);
+
+                }
+                else
+                {
+                    // If that was the last news that has not been resolved, then we change has problems flag to false
+                    var house = await DB.WarehouseDB.FirstOrDefaultAsync(x => x.Id == warehouseNews.WarehouseId);
+                    house.HasProblems = false;
+                    DB.WarehouseDB.Update(house);
+                }
                 // Saving changes in DB
                 await DB.SaveChangesAsync();
                 return warehouseNews;
