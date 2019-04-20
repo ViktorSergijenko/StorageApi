@@ -27,6 +27,10 @@ namespace StorageAPI.Models
         /// </summary>
         public string Address { get; set; }
         /// <summary>
+        /// Flag that indicates does warehouse have some kind of problems
+        /// </summary>
+        public bool HasProblems { get; set; }
+        /// <summary>
         /// Location name
         /// </summary>
         public string Location { get; set; }

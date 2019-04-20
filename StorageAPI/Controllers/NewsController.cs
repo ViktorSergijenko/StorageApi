@@ -67,6 +67,19 @@ namespace StorageAPI.Controllers
         }
 
         /// <summary>
+        /// Method deletes news from DB
+        /// </summary>
+        /// <param name="id">Id of an warehouse that we want to delete</param>
+        /// <returns></returns>
+        [HttpDelete("{id}")]
+        public async Task<ActionResult> Delete(Guid id)
+        {
+            // Calling method that will delete news from DB
+            await NewsService.DeleteNews(id);
+            // Returning ok status
+            return Ok();
+        }
+        /// <summary>
         /// Method adds or modifies a object in DB
         /// </summary>
         /// <param name="news">News object that we want to add or edit</param>

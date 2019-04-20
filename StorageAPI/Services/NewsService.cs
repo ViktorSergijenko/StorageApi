@@ -42,6 +42,27 @@ namespace StorageAPI.Services
         }
 
         /// <summary>
+        /// Method deletes news from DB
+        /// </summary>
+        /// <param name="id">Id of an news to delete</param>
+        /// <returns></returns>
+        public async Task DeleteNews(Guid id)
+        {
+            // Getting warehouse from DB with the same id like in param
+            var news = await DB.NewsDB.FirstOrDefaultAsync(x => x.Id == id);
+            // Checkinf if warehouse variable for null
+            if (news == null)
+            {
+                // If it's null then we throw exception
+                throw new Exception("Not found");
+            }
+            // Removing warehouse from DB
+            DB.NewsDB.Remove(news);
+            // Saving changes
+            await DB.SaveChangesAsync();
+        }
+
+        /// <summary>
         /// Method add or modifies a news
         /// </summary>
         /// <param name="news">news object that we want to add or modifie</param>
