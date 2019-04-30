@@ -41,7 +41,7 @@ namespace StorageAPI
             services.Configure<ApplicationSettings>(Configuration.GetSection(""));
             // Setting our connection string 
             services.AddDbContext<StorageContext>(
-                opt => opt.UseSqlServer(Configuration.GetConnectionString("LocalConnection")));
+                opt => opt.UseSqlServer(Configuration.GetConnectionString("AzureConnection")));
             // Adding Identity
             services.AddIdentity<User, IdentityRole>()
                 .AddEntityFrameworkStores<StorageContext>();
@@ -55,7 +55,7 @@ namespace StorageAPI
             {
                 options.AddPolicy("AllowOneOrigin",
                     builder => builder
-                    .WithOrigins(Configuration["ApplicationSettings:APP_URL"].ToString())
+                    .WithOrigins(Configuration["ApplicationSettings:APP_URL_AZURE"].ToString())
                     .AllowAnyMethod()
                     .AllowAnyHeader()
                     );

@@ -9,8 +9,11 @@ using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using StorageAPI.Context;
 using StorageAPI.Models;
 using StorageAPI.ModelsVM;
 
@@ -24,25 +27,47 @@ namespace StorageAPI.Controllers
         private readonly UserManager<User> userManager;
         private readonly SignInManager<User> signInManager;
         private readonly ApplicationSettings applicationSettings;
+        protected StorageContext DB { get; private set; }
 
-        public AccountController(UserManager<User> userManager, SignInManager<User> signInManager, IOptions<ApplicationSettings> appSettings)
+        public AccountController(UserManager<User> userManager, SignInManager<User> signInManager, IOptions<ApplicationSettings> appSettings, IServiceProvider service)
         {
             this.userManager = userManager;
             this.signInManager = signInManager;
             this.applicationSettings = appSettings.Value;
+            DB = service.GetRequiredService<StorageContext>();
         }
 
         // GET: api/Account
         [HttpGet]
-        public IEnumerable<string> Get()
+        public async Task Get()
         {
-            return new string[] { "value1", "value2" };
+           var isThereAnyUserInDb = await DB.Users.AnyAsync();
+            if (!isThereAnyUserInDb)
+            {
+                RegisterVM registerInfo = new RegisterVM {
+                    Email = "root@root.com",
+                    FullName = "Admin Admin",
+                    Password = "P@ssw0rd",
+                    PasswordConfirm = "P@ssw0rd"
+                };
+                User newUser = new User { Email = registerInfo.Email, FullName = registerInfo.FullName, UserName = registerInfo.Email};
+                var addedUser = await userManager.CreateAsync(newUser, registerInfo.Password);
+                if (addedUser.Succeeded)
+                {
+                    await signInManager.SignInAsync(newUser, false);
+                }
+                else
+                {
+                    throw new Exception("Something went wrong");
+                }
+            }
         }
 
         // GET: api/Account/5
         [HttpGet("{id}", Name = "Get")]
         public string Get(int id)
         {
+            
             return "value";
         }
 
