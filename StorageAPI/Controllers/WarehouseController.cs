@@ -36,7 +36,7 @@ namespace StorageAPI.Controllers
         [HttpGet]
         public async Task<ActionResult<List<Warehouse>>> GetAllWarehouses()
         {
-            return await DB.WarehouseDB.ToListAsync();
+            return await DB.WarehouseDB.Include(x => x.News).ToListAsync();
         }
 
         /// <summary>

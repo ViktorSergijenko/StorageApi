@@ -106,7 +106,7 @@ namespace StorageAPI.Services
 
         public async Task<Warehouse> AddQrCodeForWarehouse(Warehouse createdWarehouse) {
             
-            var QrcodeContent = $"https://warehouse-manager.azurewebsites.net/#/pages/iot-dashboard/details/{createdWarehouse.Id}";
+            var QrcodeContent = $"https://warehouse-manager.azurewebsites.net/#/pages/warehouse/details/{createdWarehouse.Id}";
             var width = 250; // width of the Qr Code
             var height = 250; // height of the Qr Code
             var margin = 0;

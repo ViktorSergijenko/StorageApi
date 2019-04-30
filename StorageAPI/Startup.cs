@@ -15,6 +15,11 @@ using StorageAPI.Context;
 using StorageAPI.Services;
 using AutoMapper;
 using StorageAPI.Configs;
+using StorageAPI.Models;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using System.Text;
+using Microsoft.IdentityModel.Tokens;
 
 namespace StorageAPI
 {
@@ -30,23 +35,51 @@ namespace StorageAPI
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            //"Server=tcp:warehouse-manager-dbserver.database.windows.net,1433;Initial Catalog=warehouse-manager-api_db;Persist Security Info=False;User ID=viktor@warehouse-manager-dbserver;Password=bRAVO1996;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+            //(@"Server=(localdb)\mssqllocaldb;Database=WarehouseStorage;Trusted_Connection=True;")
+            //@"Server=tcp:warehouse-manager-dbserver.database.windows.net,1433;Initial Catalog=warehouse-manager-api_db;Persist Security Info=False;User ID=viktor@warehouse-manager-dbserver;Password=bRAVO1996;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+            // Injecting AppSettings
+            services.Configure<ApplicationSettings>(Configuration.GetSection(""));
+            // Setting our connection string 
             services.AddDbContext<StorageContext>(
-                opt => opt.UseSqlServer(@"Server=(localdb)\mssqllocaldb;Database=WarehouseStorage;Trusted_Connection=True;"));
+                opt => opt.UseSqlServer(Configuration.GetConnectionString("AzureConnection")));
+            // Adding Identity
+            services.AddIdentity<User, IdentityRole>()
+                .AddEntityFrameworkStores<StorageContext>();
+            // Adding automapper
             services.AddAutoMapper(typeof(Startup).Assembly);
             services.AddMvc()
                 .AddJsonOptions(o => o.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore)
                 .SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+            // Adding cors policy
             services.AddCors(options =>
             {
                 options.AddPolicy("AllowOneOrigin",
                     builder => builder
-                    .WithOrigins("http://localhost:4200")
+                    .WithOrigins(Configuration["ApplicationSettings:APP_URL_AZURE"].ToString())
                     .AllowAnyMethod()
                     .AllowAnyHeader()
                     );
             }
             );
+            // JWT Authentification
+            var key = Encoding.UTF8.GetBytes(Configuration["ApplicationSettings:JWT_KEY"].ToString());
+            services.AddAuthentication(x => {
+                x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+                x.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+            }).AddJwtBearer(x => {
+                x.RequireHttpsMetadata = false;
+                x.SaveToken = false;
+                x.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
+                    ClockSkew = TimeSpan.Zero
+
+                };
+            });
 
             #region Services injections
             services.AddSingleton<IConfiguration>(o => Configuration);
@@ -73,6 +106,7 @@ namespace StorageAPI
 
             app.UseHttpsRedirection();
             app.UseMvc();
+            app.UseAuthentication();
             app.UseCors("AllowOneOrigin");
         }
     }

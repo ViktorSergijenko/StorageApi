@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using StorageAPI.Models;
 using System;
 using System.Collections.Generic;
@@ -7,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace StorageAPI.Context
 {
-    public class StorageContext : DbContext
+    public class StorageContext : IdentityDbContext<User>
     {
         public StorageContext(DbContextOptions<StorageContext> options)
             : base(options)
