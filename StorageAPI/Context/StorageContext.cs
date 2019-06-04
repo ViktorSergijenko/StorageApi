@@ -24,7 +24,6 @@ namespace StorageAPI.Context
                  .HasMany(x => x.Catalogs)
                  .WithOne(x => x.Warehouse)
                  .HasForeignKey(x => x.WarehouseId)
-                 .IsRequired()
                  .OnDelete(DeleteBehavior.Cascade)
                  ;
             #endregion Warehouse model builder
@@ -37,6 +36,11 @@ namespace StorageAPI.Context
                 .IsRequired()
                 .OnDelete(DeleteBehavior.Cascade)
                 ;
+            modelBuilder.Entity<Catalog>()
+                .HasOne(x => x.Basket)
+                .WithMany(x => x.Catalogs)
+                .HasForeignKey(x => x.BasketId)
+                ;
             #endregion Catalog model builder
 
             #region Product model builder
@@ -47,6 +51,26 @@ namespace StorageAPI.Context
                 .IsRequired()
                 ;
             #endregion Product model builder
+
+            #region Catalog model builder
+            modelBuilder.Entity<Catalog>()
+                .HasMany(x => x.Products)
+                .WithOne(x => x.Catalog)
+                .HasForeignKey(x => x.CatalogId)
+                ;
+
+            modelBuilder.Entity<Basket>()
+                .HasMany(x => x.Catalogs)
+                .WithOne(x => x.Basket)
+                .HasForeignKey(x => x.BasketId)
+                ;
+
+            modelBuilder.Entity<User>()
+                .HasOne(x => x.Basket)
+                .WithOne(x => x.User)
+                .HasForeignKey<Basket>(x => x.UserId)
+                ;
+            #endregion Catalog model builder
 
             #region News model builder
             modelBuilder.Entity<News>()
@@ -65,6 +89,7 @@ namespace StorageAPI.Context
         public DbSet<Catalog> CatalogDB { get; set; }
         public DbSet<Product> ProductDB { get; set; }
         public DbSet<News> NewsDB { get; set; }
+        public DbSet<Basket> Baskets { get; set; }
         #endregion Db set
     }
 }

@@ -12,5 +12,14 @@ namespace StorageAPI.Models
         /// User full name
         /// </summary>
         public string FullName { get; set; }
+        public Basket Basket { get; set; }
+
+    }
+
+    public class UserWithBasketId
+    {
+        public string FullName { get; set; }
+        public string Email { get; set; }
+        public Guid BasketId { get; set; }
     }
 }

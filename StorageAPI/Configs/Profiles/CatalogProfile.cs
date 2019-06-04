@@ -10,7 +10,8 @@ namespace StorageAPI.Configs.Profiles
     public class CatalogProfile : Profile
     {
        public CatalogProfile() {
-            CreateMap<Catalog, Catalog>();
+            CreateMap<Catalog, Catalog>()
+              .ForMember(x => x.Products, o => o.Ignore());
 
         }
     }

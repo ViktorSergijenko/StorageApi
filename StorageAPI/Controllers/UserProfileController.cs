@@ -7,6 +7,9 @@ using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using StorageAPI.Context;
 using StorageAPI.Models;
 using StorageAPI.ModelsVM;
 
@@ -18,23 +21,36 @@ namespace StorageAPI.Controllers
     public class UserProfileController : ControllerBase
     {
         private readonly UserManager<User> userManager;
+        protected StorageContext DB { get; private set; }
 
-
-        public UserProfileController(UserManager<User> userManager)
+        public UserProfileController(UserManager<User> userManager, IServiceProvider service)
         {
             this.userManager = userManager;
-
+            DB = service.GetRequiredService<StorageContext>();
         }
 
         [HttpGet("get-profile")]
-        public async Task<Object> GetUserProfile()
+        [Authorize(AuthenticationSchemes = "Bearer")]
+        public async Task<ActionResult> GetUserProfile()
         {
-            string userId = User.Claims.First(c => c.Type == "UserID").Value;
-            var user = await userManager.FindByEmailAsync(userId);
-            return new {
-                user.FullName,
-                user.Email,
-            };
+            var userId = User.Claims.FirstOrDefault(x => x.Type == "UserID").Value;
+            var user = await userManager.FindByIdAsync(userId);
+            if (user != null)
+            {
+               var userBasket = await DB.Baskets.FirstOrDefaultAsync(x => x.UserId == userId);
+                return Ok(new UserWithBasketId
+                {
+                    FullName = user.FullName,
+                    Email = user.Email,
+                    BasketId = userBasket.Id
+                }
+                );
+            }
+            else
+            {
+                return BadRequest();
+            }
+            
         }
     }
 }

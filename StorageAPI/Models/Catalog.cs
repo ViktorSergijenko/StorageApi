@@ -34,17 +34,9 @@ namespace StorageAPI.Models
         /// </summary>
         public int MinimumAmount { get; set; }
         /// <summary>
-        /// Total price for purchased goods(products in catalog)
+        /// Price per one product
         /// </summary>
-        public decimal PurchasePrice { get; set; }
-        /// <summary>
-        /// Total price for purchased goods(products in catalog)
-        /// </summary>
-        public decimal SoldPrice { get; set; }
-        /// <summary>
-        /// Difference between purchase and sold price
-        /// </summary>
-        public decimal DifferenceBetweenSoldAndPurchasePrice { get; set; }
+        public decimal ProductPrice { get; set; }
         /// <summary>
         /// Warehouse to that this catalog belongs
         /// </summary>
@@ -52,7 +44,15 @@ namespace StorageAPI.Models
         /// <summary>
         /// Id of an warehouse to that this catalog belongs
         /// </summary>
-        public Guid WarehouseId { get; set; }
+        public Guid? WarehouseId { get; set; }
+        /// <summary>
+        /// Basket to that this catalog belongs
+        /// </summary>
+        public Basket Basket { get; set; }
+        /// <summary>
+        /// Id of an basket to that this catalog belongs
+        /// </summary>
+        public Guid? BasketId { get; set; }
         /// <summary>
         /// List of products
         /// </summary>

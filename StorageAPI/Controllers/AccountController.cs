@@ -13,6 +13,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Newtonsoft.Json;
+using StorageAPI.Configs;
 using StorageAPI.Context;
 using StorageAPI.Models;
 using StorageAPI.ModelsVM;
@@ -39,7 +41,7 @@ namespace StorageAPI.Controllers
 
         // GET: api/Account
         [HttpGet]
-        public async Task Get()
+        public async Task<string> Get()
         {
            var isThereAnyUserInDb = await DB.Users.AnyAsync();
             if (!isThereAnyUserInDb)
@@ -55,12 +57,19 @@ namespace StorageAPI.Controllers
                 if (addedUser.Succeeded)
                 {
                     await signInManager.SignInAsync(newUser, false);
+                    Basket newBasket = new Basket()
+                    {
+                        UserId = newUser.Id
+                    };
+                    await DB.Baskets.AddAsync(newBasket);
+                    await DB.SaveChangesAsync();
                 }
                 else
                 {
                     throw new Exception("Something went wrong");
                 }
             }
+            return "asd";
         }
 
         // GET: api/Account/5
@@ -82,6 +91,12 @@ namespace StorageAPI.Controllers
                 if (addedUser.Succeeded)
                 {
                     await signInManager.SignInAsync(user, false);
+                    Basket newBasket = new Basket()
+                    {
+                        UserId = user.Id
+                    };
+                    DB.Baskets.Add(newBasket);
+                    await DB.SaveChangesAsync();
                 }
                 else
                 {
@@ -97,28 +112,53 @@ namespace StorageAPI.Controllers
             var user = await userManager.FindByEmailAsync(userThatWantToLogin.Email);
             if (user != null && await userManager.CheckPasswordAsync(user, userThatWantToLogin.Password))
             {
-                var tokenDescriptor = new SecurityTokenDescriptor {
-                    Subject = new ClaimsIdentity(new Claim[]
-                    {
-                        new Claim("UserID", user.Id.ToString())
-                    }),
-                    Expires = DateTime.UtcNow.AddDays(5),
-                    SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes("vfvrbylhzybr18021")), SecurityAlgorithms.HmacSha256Signature)
+                //var tokenDescriptor = new SecurityTokenDescriptor {
+                //    Subject = new ClaimsIdentity(new Claim[]
+                //    {
+                //        new Claim("UserID", user.Id.ToString())
+                //    }),
+                //    Expires = DateTime.UtcNow.AddDays(5),
+                //    SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(Encoding.UTF8.GetBytes("vfvrbylhzybr18021")), SecurityAlgorithms.HmacSha256Signature)
+                //};
+                //var tokenHandler = new JwtSecurityTokenHandler();
+                //var securityToken = tokenHandler.CreateToken(tokenDescriptor);
+                //var token = tokenHandler.WriteToken(securityToken);
+                //return Ok(new { token });
+                var claims = new List<Claim>
+                {
+                    new Claim("UserID", user.Id.ToString()),
+                    new Claim(ClaimsIdentity.DefaultNameClaimType, user.UserName),
+                    new Claim(ClaimsIdentity.DefaultRoleClaimType, user.FullName)
                 };
-                var tokenHandler = new JwtSecurityTokenHandler();
-                var securityToken = tokenHandler.CreateToken(tokenDescriptor);
-                var token = tokenHandler.WriteToken(securityToken);
-                return Ok(new { token });
+                ClaimsIdentity claimsIdentity =
+                new ClaimsIdentity(claims, "Token", ClaimsIdentity.DefaultNameClaimType,
+                    ClaimsIdentity.DefaultRoleClaimType);
+                var now = DateTime.UtcNow;
+                // создаем JWT-токен
+                var jwt = new JwtSecurityToken(
+                        issuer: AuthOptions.ISSUER,
+                        audience: AuthOptions.AUDIENCE,
+                        notBefore: now,
+                        claims: claimsIdentity.Claims,
+                        expires: now.Add(TimeSpan.FromMinutes(AuthOptions.LIFETIME)),
+                        signingCredentials: new SigningCredentials(AuthOptions.GetSymmetricSecurityKey(), SecurityAlgorithms.HmacSha256));
+                var encodedJwt = new JwtSecurityTokenHandler().WriteToken(jwt);
+
+                var response = new
+                {
+                    access_token = encodedJwt,
+                    username = claimsIdentity.Name
+                };
+
+                return Ok(response);
+
+
             }
             else
             {
-                return BadRequest(new { message = "USarname or password is incorrect." });
+                return BadRequest(new { message = "Username or password is incorrect." });
             }
         }
-
-
-
-
 
         // DELETE: api/ApiWithActions/5
         [HttpDelete("{id}")]

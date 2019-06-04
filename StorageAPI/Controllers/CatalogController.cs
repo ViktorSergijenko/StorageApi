@@ -52,6 +52,33 @@ namespace StorageAPI.Controllers
         }
 
         /// <summary>
+        /// Method gets Catalog by id
+        /// </summary>
+        /// <param name="id">Id of a Catalog that we want to get</param>
+        /// <returns>Ok status with an Catalog object</returns>
+        [HttpGet("warehouse/{id}")]
+        public async Task<ActionResult> GetCatalogByWarehouseId(Guid id)
+        {
+            // Getting Catalog by id
+            var Catalog = await CatalogService.GetCatatolgListByWarehouseId(id);
+            // Returning Catalog 
+            return Ok(Catalog);
+        }
+        /// <summary>
+        /// Method gets Catalog by id
+        /// </summary>
+        /// <param name="id">Id of a Catalog that we want to get</param>
+        /// <returns>Ok status with an Catalog object</returns>
+        [HttpGet("basket/{id}")]
+        public async Task<ActionResult> GetCatalogByBasketId(Guid id)
+        {
+            // Getting Catalog by basket id
+            var Catalog = await CatalogService.GetCatatolgListByBasketeId(id);
+            // Returning Catalog 
+            return Ok(Catalog);
+        }
+
+        /// <summary>
         /// Method adds or modifies a  Catalog in DB
         /// </summary>
         /// <param name="Catalog">Catalog object that we want to add or edit</param>
