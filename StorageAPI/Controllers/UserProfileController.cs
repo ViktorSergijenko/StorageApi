@@ -34,6 +34,7 @@ namespace StorageAPI.Controllers
         public async Task<ActionResult> GetUserProfile()
         {
             var userId = User.Claims.FirstOrDefault(x => x.Type == "UserID").Value;
+           var role = User.Claims.FirstOrDefault(x => x.Type == "Role").Value;
             var user = await userManager.FindByIdAsync(userId);
             if (user != null)
             {
@@ -42,7 +43,8 @@ namespace StorageAPI.Controllers
                 {
                     FullName = user.FullName,
                     Email = user.Email,
-                    BasketId = userBasket.Id
+                    BasketId = userBasket.Id,
+                    RoleName = role
                 }
                 );
             }

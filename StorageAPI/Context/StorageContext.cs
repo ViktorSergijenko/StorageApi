@@ -80,7 +80,37 @@ namespace StorageAPI.Context
                 ;
             #endregion News model builder
 
+            modelBuilder.Entity<CatalogName>()
+            .HasMany(x => x.CatalogList)
+            .WithOne(x => x.Name)
+            .HasForeignKey(x => x.CatalogNameId)
+            .IsRequired();
+            ;
+
+            modelBuilder.Entity<Catalog>()
+            .HasOne(x => x.Name)
+            .WithMany(x => x.CatalogList)
+            .HasForeignKey(x => x.CatalogNameId)
+            ;
+            modelBuilder.Entity<User>()
+              .HasOne(x => x.Settings)
+              .WithOne(x => x.User)
+              .HasForeignKey<UserSettings>(x => x.UserId)
+              ;
+            modelBuilder.Entity<UserWarehouse>().HasKey(uw => new { uw.UserId, uw.WarehouseId });
+
+            modelBuilder.Entity<UserWarehouse>()
+                .HasOne<Warehouse>(sc => sc.Warehouse)
+                .WithMany(s => s.UserWarehouse)
+                .HasForeignKey(sc => sc.WarehouseId);
+
+            modelBuilder.Entity<UserWarehouse>()
+                .HasOne<User>(sc => sc.User)
+                .WithMany(s => s.UserWarehouse)
+                .HasForeignKey(sc => sc.UserId);
+
             base.OnModelCreating(modelBuilder);
+
         }
         #endregion Model builder
 
@@ -90,6 +120,13 @@ namespace StorageAPI.Context
         public DbSet<Product> ProductDB { get; set; }
         public DbSet<News> NewsDB { get; set; }
         public DbSet<Basket> Baskets { get; set; }
+        public DbSet<CatalogName> CatalogNameDB { get; set; }
+        public DbSet<UserWarehouse> UserWarehouseDB { get; set; }
+
+        public DbSet<UserSettings> UserSettingsDB { get; set; }
+        public DbSet<SimpleLogTable> SimpleLogTableDB { get; set; }
+        public DbSet<AdminLogTable> AdminLogTable { get; set; }
+
         #endregion Db set
     }
 }

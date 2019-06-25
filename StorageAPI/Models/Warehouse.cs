@@ -17,6 +17,7 @@ namespace StorageAPI.Models
             // Initializing our catalog list with empty value to avoid problems related with null references
             Catalogs = new List<Catalog>();
             News = new List<News>();
+            UserWarehouse = new List<UserWarehouse>();
         }
         /// <summary>
         /// Name of the warehouse
@@ -51,6 +52,8 @@ namespace StorageAPI.Models
         /// </summary>
         public List<Catalog> Catalogs { get; set; }
         public List<News> News { get; set; }
+        public List<UserWarehouse> UserWarehouse { get; set; }
+
     }
 
     /// <summary>

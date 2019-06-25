@@ -10,6 +10,7 @@ using StorageAPI.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Cors;
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 
 namespace StorageAPI.Controllers
 {
@@ -19,6 +20,8 @@ namespace StorageAPI.Controllers
     public class WarehouseController : ControllerBase
     {
       private WarehouseService WarehouseService { get; set; }
+       private SimpleLogTableServcie SimpleLogTableService { get; set; }
+
         protected StorageContext DB { get; private set; }
 
 
@@ -26,6 +29,7 @@ namespace StorageAPI.Controllers
         {
             WarehouseService = service.GetRequiredService<WarehouseService>();
             DB = service.GetRequiredService<StorageContext>();
+            SimpleLogTableService = service.GetRequiredService<SimpleLogTableServcie>();
         }
 
         #region Base crud
@@ -59,10 +63,12 @@ namespace StorageAPI.Controllers
         /// <param name="warehouse">Warehouse object that we want to add or edit</param>
         /// <returns> Warehouse object</returns>
         [HttpPost]
+        [Authorize(AuthenticationSchemes = "Bearer")]
         public async Task<ActionResult> CreateWarehouse([FromBody] Warehouse warehouse)
         {
-                // Adding new warehouse by calling a method that will add it to DB
-                var newWarehouse = await WarehouseService.SaveWarehouse(warehouse);
+            var username = User.Claims.FirstOrDefault(x => x.Type == "FullName").Value;
+            // Adding new warehouse by calling a method that will add it to DB
+            var newWarehouse = await WarehouseService.SaveWarehouse(warehouse, username);
                 // Returning new warehouse
                 return Ok(newWarehouse);
         }
@@ -73,10 +79,12 @@ namespace StorageAPI.Controllers
         /// <param name="id">Id of an warehouse that we want to delete</param>
         /// <returns></returns>
         [HttpDelete("{id}")]
+        [Authorize(AuthenticationSchemes = "Bearer")]
         public async Task<ActionResult> FilterWarehouses(Guid id)
         {
+            var username = User.Claims.FirstOrDefault(x => x.Type == "FullName").Value;
             // Calling method that will delete warehouse from DB
-            await WarehouseService.DeleteWarehouse(id);
+            await WarehouseService.DeleteWarehouse(id, username);
             // Returning filtered warehouse list
             return Ok();
         }

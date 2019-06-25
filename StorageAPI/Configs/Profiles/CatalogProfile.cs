@@ -13,6 +13,9 @@ namespace StorageAPI.Configs.Profiles
             CreateMap<Catalog, Catalog>()
               .ForMember(x => x.Products, o => o.Ignore());
 
+            CreateMap<Catalog, CatalogName>()
+             .ForMember(x => x.Name, o => o.MapFrom(x => x.Name.Name));
+
         }
     }
 }

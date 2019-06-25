@@ -12,7 +12,7 @@ namespace StorageAPI.Configs
         public const string ISSUER = "MyAuthServer"; // издатель токена
         public const string AUDIENCE = "http://localhost:4200/"; // потребитель токена
         const string KEY = "jrcbvbhjydsquhfknjn,fnk18021";   // ключ для шифрации
-        public const int LIFETIME = 60; // время жизни токена - 1 минута
+        public const int LIFETIME = 3000; // время жизни токена - 50 минут
         public static SymmetricSecurityKey GetSymmetricSecurityKey()
         {
             return new SymmetricSecurityKey(Encoding.ASCII.GetBytes(KEY));

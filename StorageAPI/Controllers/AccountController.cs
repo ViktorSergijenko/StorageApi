@@ -5,6 +5,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -18,6 +19,7 @@ using StorageAPI.Configs;
 using StorageAPI.Context;
 using StorageAPI.Models;
 using StorageAPI.ModelsVM;
+using StorageAPI.Services;
 
 namespace StorageAPI.Controllers
 {
@@ -27,15 +29,20 @@ namespace StorageAPI.Controllers
     public class AccountController : ControllerBase
     {
         private readonly UserManager<User> userManager;
+        private readonly RoleManager<IdentityRole> roleManager;
         private readonly SignInManager<User> signInManager;
         private readonly ApplicationSettings applicationSettings;
+        private SimpleLogTableServcie SimpleLogTableService { get; set; }
+
         protected StorageContext DB { get; private set; }
 
-        public AccountController(UserManager<User> userManager, SignInManager<User> signInManager, IOptions<ApplicationSettings> appSettings, IServiceProvider service)
+        public AccountController(UserManager<User> userManager, SignInManager<User> signInManager, IOptions<ApplicationSettings> appSettings, IServiceProvider service, RoleManager<IdentityRole> roleManager)
         {
             this.userManager = userManager;
+            this.roleManager = roleManager;
             this.signInManager = signInManager;
             this.applicationSettings = appSettings.Value;
+            SimpleLogTableService = service.GetRequiredService<SimpleLogTableServcie>();
             DB = service.GetRequiredService<StorageContext>();
         }
 
@@ -44,13 +51,19 @@ namespace StorageAPI.Controllers
         public async Task<string> Get()
         {
            var isThereAnyUserInDb = await DB.Users.AnyAsync();
+            var allUsers = await userManager.Users.ToListAsync();
             if (!isThereAnyUserInDb)
             {
+                await roleManager.CreateAsync(new IdentityRole("Level one"));
+                await roleManager.CreateAsync(new IdentityRole("Level two"));
+                await roleManager.CreateAsync(new IdentityRole("Level three"));
+                await roleManager.CreateAsync(new IdentityRole("Level four"));
+                var roleForAdmin = await roleManager.FindByNameAsync("Level one");
                 RegisterVM registerInfo = new RegisterVM {
                     Email = "root@root.com",
                     FullName = "Admin Admin",
                     Password = "P@ssw0rd",
-                    PasswordConfirm = "P@ssw0rd"
+                    PasswordConfirm = "P@ssw0rd",
                 };
                 User newUser = new User { Email = registerInfo.Email, FullName = registerInfo.FullName, UserName = registerInfo.Email};
                 var addedUser = await userManager.CreateAsync(newUser, registerInfo.Password);
@@ -62,6 +75,18 @@ namespace StorageAPI.Controllers
                         UserId = newUser.Id
                     };
                     await DB.Baskets.AddAsync(newBasket);
+                    UserSettings userSettings = new UserSettings() {
+                        CanAddProductsManually = true,
+                        CanDeleteUsers = true,
+                        CanEditUserBaskets = true,
+                        CanEditUserInformation = true,
+                        CanEditUserPassword = true,
+                        UserId = newUser.Id
+                    };
+                   await DB.UserSettingsDB.AddAsync(userSettings);
+
+
+                    await userManager.AddToRoleAsync(newUser, "Level one");
                     await DB.SaveChangesAsync();
                 }
                 else
@@ -79,17 +104,70 @@ namespace StorageAPI.Controllers
             
             return "value";
         }
+       
+        [HttpGet("getUserList")]
+        public async Task<ActionResult> GetUserList()
+        {
+            var userList = await userManager.Users.ToListAsync();
+            List<UserVM> userListWithRoles = new List<UserVM>();
+            foreach (var user in userList)
+            {
+                var userRoleName = await userManager.GetRolesAsync(user);
+                UserVM userWithRole = new UserVM {
+                    Id = user.Id,
+                    FullName = user.FullName,
+                    Email = user.Email,
+                    RoleName = userRoleName[0]
+                };
+                userListWithRoles.Add(userWithRole);
+            }
+            return Ok(userListWithRoles);
+        }
 
+        [HttpGet("getRoleList")]
+        [Authorize(AuthenticationSchemes = "Bearer")]
+        public async Task<ActionResult> GetRoleList()
+        {
+            List<string> roles = new List<string>();
+            var role = User.Claims.FirstOrDefault(x => x.Type == "Role").Value;
+            if (role == "Level one")
+            {
+                roles = await roleManager.Roles.Where(x => x.Name != "Level one").Select(x => x.Name).ToListAsync();
+            }
+            if (role == "Level two")
+            {
+                roles = await roleManager.Roles.Where(x => x.Name !="Level one" && x.Name != "Level two").Select(x => x.Name).ToListAsync();
+            }
+            if (role == "Level three")
+            {
+                roles = await roleManager.Roles.Where(x => x.Name != "Level one" && x.Name != "Level two" && x.Name != "Level three").Select(x => x.Name).ToListAsync();
+            }
+            return Ok(roles);
+        }
+      
+        [HttpGet("getUserBasket")]
+        public async Task<ActionResult> GetUserBasket(User user)
+        {
+            var userBasket = await DB.Baskets.FirstOrDefaultAsync(x => x.UserId == user.Id);
+            return Ok(userBasket);
+        }
+
+     
         [HttpPost("register")]
+        [Authorize(AuthenticationSchemes = "Bearer")]
+
         public async Task<ActionResult> RegisterUser([FromBody] RegisterVM newUser)
         {
+            var whoCreated = User.Claims.FirstOrDefault(x => x.Type == "FullName").Value;
+
             if (ModelState.IsValid)
             {
-                User user = new User { Email = newUser.Email, FullName = newUser.FullName, UserName = newUser.Email };
+                User user = new User { Email = newUser.Email, FullName = newUser.FullName, UserName = newUser.Email , WhoCreated = whoCreated };
                 // Adding new user
                 var addedUser = await userManager.CreateAsync(user, newUser.Password);
                 if (addedUser.Succeeded)
                 {
+                    await userManager.AddToRoleAsync(user, newUser.RoleName);
                     await signInManager.SignInAsync(user, false);
                     Basket newBasket = new Basket()
                     {
@@ -103,7 +181,26 @@ namespace StorageAPI.Controllers
                     throw new Exception("Something went wrong");
                 }          
             }
+            await SimpleLogTableService.AddAdminLog($"Registered new user: {newUser.FullName}", whoCreated);
+
             return Ok(newUser);
+        }
+
+
+        [HttpPost("delete")]
+        [Authorize(AuthenticationSchemes = "Bearer")]
+        public async Task<ActionResult> Delete(string id)
+        {
+            var username = User.Claims.FirstOrDefault(x => x.Type == "FullName").Value;
+
+            User user = await userManager.FindByIdAsync(id);
+            if (user != null)
+            {
+                IdentityResult result = await userManager.DeleteAsync(user);
+            }
+            await SimpleLogTableService.AddAdminLog($"Deleted user: {user.FullName}", username);
+
+            return Ok();
         }
 
         [HttpPost("login")]
@@ -112,6 +209,7 @@ namespace StorageAPI.Controllers
             var user = await userManager.FindByEmailAsync(userThatWantToLogin.Email);
             if (user != null && await userManager.CheckPasswordAsync(user, userThatWantToLogin.Password))
             {
+                var userRole = await  userManager.GetRolesAsync(user);
                 //var tokenDescriptor = new SecurityTokenDescriptor {
                 //    Subject = new ClaimsIdentity(new Claim[]
                 //    {
@@ -127,8 +225,9 @@ namespace StorageAPI.Controllers
                 var claims = new List<Claim>
                 {
                     new Claim("UserID", user.Id.ToString()),
-                    new Claim(ClaimsIdentity.DefaultNameClaimType, user.UserName),
-                    new Claim(ClaimsIdentity.DefaultRoleClaimType, user.FullName)
+                    new Claim("UserName", user.UserName),
+                    new Claim("FullName", user.FullName),
+                    new Claim("Role", userRole[0])
                 };
                 ClaimsIdentity claimsIdentity =
                 new ClaimsIdentity(claims, "Token", ClaimsIdentity.DefaultNameClaimType,
@@ -160,10 +259,70 @@ namespace StorageAPI.Controllers
             }
         }
 
-        // DELETE: api/ApiWithActions/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
+        [HttpPost("changeUserPassword")]
+        [Authorize(AuthenticationSchemes = "Bearer")]
+        public async Task<ActionResult> ChangePassword(ChangePasswordViewModel model)
         {
+            var username = User.Claims.FirstOrDefault(x => x.Type == "FullName").Value;
+            if (ModelState.IsValid)
+            {
+                User user = await userManager.FindByIdAsync(model.Id);
+                if (user != null)
+                {
+                    var _passwordValidator =
+                        HttpContext.RequestServices.GetService(typeof(IPasswordValidator<User>)) as IPasswordValidator<User>;
+                    var _passwordHasher =
+                        HttpContext.RequestServices.GetService(typeof(IPasswordHasher<User>)) as IPasswordHasher<User>;
+
+                    IdentityResult result =
+                        await _passwordValidator.ValidateAsync(userManager, user, model.NewPassword);
+                    if (result.Succeeded)
+                    {
+                        user.PasswordHash = _passwordHasher.HashPassword(user, model.NewPassword);
+                        await userManager.UpdateAsync(user);
+                        await SimpleLogTableService.AddAdminLog($"Changed password to user: {user.FullName}", username);
+                    }
+                    else
+                    {
+                        return BadRequest();
+                    }
+                }
+                else
+                {
+                    ModelState.AddModelError(string.Empty, "Пользователь не найден");
+                }
+            }
+
+            return Ok(model);
+        }
+
+        [HttpPost("edit-user")]
+        public async Task<IActionResult> Edit(ChangeUserInfoViewModel model)
+        {
+            if (ModelState.IsValid)
+            {
+                User user = await userManager.FindByIdAsync(model.Id);
+                if (user != null)
+                {
+                    user.Email = model.Email;
+                    user.UserName = model.Email;
+                    user.FullName = model.FullName;
+                    var newRole = await roleManager.Roles.FirstOrDefaultAsync(x => x.Name == model.RoleName);
+                    var result = await userManager.UpdateAsync(user);
+                    if (result.Succeeded)
+                    {
+                        await userManager.AddToRoleAsync(user, newRole.Name);
+                    }
+                    else
+                    {
+                        foreach (var error in result.Errors)
+                        {
+                            ModelState.AddModelError(string.Empty, error.Description);
+                        }
+                    }
+                }
+            }
+            return Ok(model);
         }
     }
 }

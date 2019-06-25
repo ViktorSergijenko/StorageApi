@@ -16,12 +16,15 @@ namespace StorageAPI.Services
     public class WarehouseService
     {
         protected StorageContext DB { get; private set; }
+        protected SimpleLogTableServcie SimpleLogTableService { get; private set; }
 
 
 
         public WarehouseService(IServiceProvider service)
         {
             DB = service.GetService<StorageContext>();
+            SimpleLogTableService = service.GetRequiredService<SimpleLogTableServcie>();
+
 
         }
 
@@ -52,13 +55,14 @@ namespace StorageAPI.Services
         /// </summary>
         /// <param name="newWarehouse">Warehouse object that we want to add or modifie</param>
         /// <returns>New warehouse with id included or modified object</returns>
-        public async Task<Warehouse> SaveWarehouse(Warehouse warehouse) {
+        public async Task<Warehouse> SaveWarehouse(Warehouse warehouse, string username) {
 
             // If warehouse does not have id, that means that it's a new entity, and we need an add functionality
             if (warehouse.Id == null || warehouse.Id.Equals(Guid.Empty))
             {
                 // Adding new warehouse to DB
-                DB.WarehouseDB.Add(warehouse);
+               await DB.WarehouseDB.AddAsync(warehouse);
+               await SimpleLogTableService.AddAdminLog($"Created warehouse: {warehouse.Name}", username);
                 // Saving changes in DB
                 await DB.SaveChangesAsync();
                 // Generating QR code for warehouse
@@ -86,7 +90,7 @@ namespace StorageAPI.Services
         /// </summary>
         /// <param name="id">Id of an warehouse to delete</param>
         /// <returns></returns>
-        public async Task DeleteWarehouse(Guid id) {
+        public async Task DeleteWarehouse(Guid id, string username) {
             // Getting warehouse from DB with the same id like in param
             var warehouse = await DB.WarehouseDB.FirstOrDefaultAsync(x => x.Id == id);
             // Checkinf if warehouse variable for null
@@ -97,6 +101,8 @@ namespace StorageAPI.Services
             }
             // Removing warehouse from DB
             DB.WarehouseDB.Remove(warehouse);
+            await SimpleLogTableService.AddAdminLog($"Deleted warehouse: {warehouse.Name}", username);
+
             // Saving changes
             await DB.SaveChangesAsync();
         }

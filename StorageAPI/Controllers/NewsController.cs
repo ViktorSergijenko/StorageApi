@@ -10,6 +10,7 @@ using StorageAPI.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Cors;
+using Microsoft.AspNetCore.Authorization;
 
 namespace StorageAPI.Controllers
 {
@@ -20,11 +21,14 @@ namespace StorageAPI.Controllers
     {
         private NewsService NewsService { get; set; }
         protected StorageContext DB { get; private set; }
+        private SimpleLogTableServcie SimpleLogTableService { get; set; }
 
         public NewsController(IServiceProvider service)
         {
             NewsService = service.GetRequiredService<NewsService>();
             DB = service.GetRequiredService<StorageContext>();
+            SimpleLogTableService = service.GetRequiredService<SimpleLogTableServcie>();
+
         }
 
         #region Base crud
@@ -58,12 +62,17 @@ namespace StorageAPI.Controllers
         /// <param name="id">Id of a news that we want to toggle</param>
         /// <returns>Ok status with an news object</returns>
         [HttpGet("fix-news/{warehouseId}")]
+        [Authorize(AuthenticationSchemes = "Bearer")]
         public async Task<ActionResult> ToggleFixedNewsFlag(Guid warehouseId)
         {
+            var username = User.Claims.FirstOrDefault(x => x.Type == "FullName").Value;
+
             // Getting warehouse news by id
-            var warehouse = await NewsService.toggleNewsFixedProblemFlag(warehouseId);
+            var news = await NewsService.toggleNewsFixedProblemFlag(warehouseId);
+            await SimpleLogTableService.AddLog($"Resolved problems related with: {news.Title}", username);
+
             // Returning warehouse news
-            return Ok(warehouse);
+            return Ok(news);
         }
 
         /// <summary>
@@ -72,10 +81,13 @@ namespace StorageAPI.Controllers
         /// <param name="id">Id of an warehouse that we want to delete</param>
         /// <returns></returns>
         [HttpDelete("{id}")]
+        [Authorize(AuthenticationSchemes = "Bearer")]
         public async Task<ActionResult> Delete(Guid id)
         {
             // Calling method that will delete news from DB
-            await NewsService.DeleteNews(id);
+            var news = await NewsService.DeleteNews(id);
+            var username = User.Claims.FirstOrDefault(x => x.Type == "FullName").Value;
+            await SimpleLogTableService.AddAdminLog($"Deleted problem related with: {news.Title}", username);
             // Returning ok status
             return Ok();
         }
@@ -85,10 +97,12 @@ namespace StorageAPI.Controllers
         /// <param name="news">News object that we want to add or edit</param>
         /// <returns> Edited or created  object</returns>
         [HttpPost]
+        [Authorize(AuthenticationSchemes = "Bearer")]
         public async Task<ActionResult> SaveOrCreate([FromBody] News news)
         {
+            var username = User.Claims.FirstOrDefault(x => x.Type == "FullName").Value;
             // Adding new object by calling a method that will add it to DB
-            var editedOrCreatedNews = await NewsService.SaveNews(news);
+            var editedOrCreatedNews = await NewsService.SaveNews(news, username);
             // Returning new object
             return Ok(editedOrCreatedNews);
         }

@@ -13,10 +13,13 @@ namespace StorageAPI.Services
     public class NewsService
     {
         protected StorageContext DB { get; private set; }
+        protected SimpleLogTableServcie SimpleLogTableService { get; private set; }
 
         public NewsService(IServiceProvider services)
         {
             DB = services.GetService<StorageContext>();
+            SimpleLogTableService = services.GetRequiredService<SimpleLogTableServcie>();
+
         }
 
         /// <summary>
@@ -46,7 +49,7 @@ namespace StorageAPI.Services
         /// </summary>
         /// <param name="id">Id of an news to delete</param>
         /// <returns></returns>
-        public async Task DeleteNews(Guid id)
+        public async Task<News> DeleteNews(Guid id)
         {
             // Getting warehouse from DB with the same id like in param
             var news = await DB.NewsDB.FirstOrDefaultAsync(x => x.Id == id);
@@ -60,6 +63,7 @@ namespace StorageAPI.Services
             DB.NewsDB.Remove(news);
             // Saving changes
             await DB.SaveChangesAsync();
+            return news;
         }
 
         /// <summary>
@@ -67,17 +71,19 @@ namespace StorageAPI.Services
         /// </summary>
         /// <param name="news">news object that we want to add or modifie</param>
         /// <returns>New news with id included or modified object</returns>
-        public async Task<News> SaveNews(News news)
+        public async Task<News> SaveNews(News news, string username)
         {
 
             // If warehouse does not have id, that means that it's a new entity, and we need an add functionality
             if (news.Id == null || news.Id.Equals(Guid.Empty))
             {
-                var house = await DB.WarehouseDB.FirstOrDefaultAsync(x => x.Id == news.WarehouseId);
-                house.HasProblems = true;
+                var warehouse = await DB.WarehouseDB.FirstOrDefaultAsync(x => x.Id == news.WarehouseId);
+                warehouse.HasProblems = true;
                 // Adding new warehouse to DB
                 DB.NewsDB.Add(news);
-                DB.WarehouseDB.Update(house);
+                DB.WarehouseDB.Update(warehouse);
+                await SimpleLogTableService.AddAdminLog($"Created problem related with: {news.Title} in {warehouse.Name} warehouse", username);
+
 
 
                 // Saving changes in DB
@@ -89,11 +95,12 @@ namespace StorageAPI.Services
             {
 
                 // Getting object from DB that has similar id like in our param variable
-                var newsFromDb = await DB.NewsDB.FirstOrDefaultAsync(x => x.Id == news.Id);
+                var newsFromDb = await DB.NewsDB.Include(x => x.Warehouse).FirstOrDefaultAsync(x => x.Id == news.Id);
                 // Using mapper to edit all fields
                 Mapper.Map(news, newsFromDb);
                 // Updating DB
                 DB.NewsDB.Update(newsFromDb);
+                await SimpleLogTableService.AddAdminLog($"Modified problem information related with: {news.Title} in {news.Warehouse.Name} warehouse", username);
                 // Saving changes in DB
                 await DB.SaveChangesAsync();
             }

@@ -28,7 +28,7 @@ namespace StorageAPI.Services
         public async Task<Basket> GetBasketById(Guid id)
         {
             // Getting catalog from DB
-            var basket = await DB.Baskets.Include(x => x.Catalogs).FirstOrDefaultAsync(x => x.Id == id);
+            var basket = await DB.Baskets.Include(x => x.Catalogs).ThenInclude(x => x.Name).FirstOrDefaultAsync(x => x.Id == id);
             // Checking if it's not null
             if (basket == null)
             {
@@ -71,7 +71,7 @@ namespace StorageAPI.Services
         {
             // Getting basket from Db
             var basketFromDb = await GetBasketById(items.BasketId);
-            var catalogFromBasket = basketFromDb.Catalogs.FirstOrDefault(x => x.Name == items.Name);
+            var catalogFromBasket = basketFromDb.Catalogs.FirstOrDefault(x => x.Name.Name == items.Name);
             var catalogInWarehouse = await DB.CatalogDB.FirstOrDefaultAsync(x => x.Id == items.CatalogId);
             var productsFromDb = await DB.ProductDB.Where(x => x.CatalogId == catalogFromBasket.Id).ToListAsync();
             var productList = CheckForNeededAmountOfProducts(productsFromDb, items.ProductAmount);
@@ -86,6 +86,7 @@ namespace StorageAPI.Services
                 return ProblemWithBasket.NotEnoughProductsInCatalog;
             }
         }
+
 
         private List<Product> CheckForNeededAmountOfProducts(List<Product> products, int neededAmount)
         {
@@ -116,11 +117,12 @@ namespace StorageAPI.Services
             foreach (var product in productList)
             {
                 // If there's no catalog with the same name as product, that means that we need to add new catalog to basket, so we could store this product
-                if (!basket.Catalogs.Any(x => x.Name == product.Name))
+                if (!basket.Catalogs.Any(x => x.Name.Name == product.Name))
                 {
                     // Creating new catalog
                     Catalog newCatalog = new Catalog();
-                    newCatalog.Name = product.Name;
+                    var catalogName = await DB.CatalogNameDB.FirstOrDefaultAsync(x => x.Name == product.Name);
+                    newCatalog.CatalogNameId = catalogName.Id;
                     newCatalog.BasketId = basket.Id;
                     // Adding it to DB
                     await DB.CatalogDB.AddAsync(newCatalog);
@@ -148,7 +150,7 @@ namespace StorageAPI.Services
                 {
                     // We check every catalog name with the name of product, since all products has the same name as catalog where they are stored in
                     // If name of catalog and product name is the same, that means that we need to put this product in this catalog
-                    if (catalog.Name == products.Name)
+                    if (catalog.Name.Name == products.Name)
                     {
                         // When we found product with the same name as catalog, we putt this item in this catalog
                         // We are creating new product with the same params, except catalog id, because we take catalog from basket
@@ -203,11 +205,15 @@ namespace StorageAPI.Services
                         // Removing product from DB
                         DB.ProductDB.Remove(product);
                         catalogFromBasket.CurrentAmount--;
-                //if (catalogFromBasket.CurrentAmount == 0)
-                //{
-                //    DB.CatalogDB.Remove(catalogFromBasket);
-                //}
+                        if (catalogFromBasket.CurrentAmount == 0)
+                        {
+                            DB.CatalogDB.Remove(catalogFromBasket);
+                        }
+                        else
+                        {
                         DB.CatalogDB.Update(catalogFromBasket);
+
+                        }
 
                         // And creating it in the new catalog in basket
                         await DB.ProductDB.AddAsync(newProduct);

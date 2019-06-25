@@ -1,26 +1,25 @@
-﻿using System;
+﻿using StorageAPI.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace StorageAPI.Models 
+namespace StorageAPI.ModelsVM
 {
-    /// <summary>
-    /// Catalog model
-    /// </summary>
-    public class Catalog : BaseEntity
+    public class CatalogVM : BaseEntity
     {
         /// <summary>
         /// Constructor for model
         /// </summary>
-        public Catalog() {
+        public CatalogVM()
+        {
             // Initializing our product list with empty value to avoid problems related with null references
             Products = new List<Product>();
         }
         /// <summary>
         /// Catalog name
         /// </summary>
-        public CatalogName Name { get; set; }
+        public string Name { get; set; }
         public Guid CatalogNameId { get; set; }
         /// <summary>
         /// Catalog current product amount

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -9,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using StorageAPI.Context;
 using StorageAPI.Models;
+using StorageAPI.ModelsVM;
 using StorageAPI.Services;
 
 namespace StorageAPI.Controllers
@@ -21,10 +23,14 @@ namespace StorageAPI.Controllers
 
         private BasketService BasketService { get; set; }
         protected StorageContext DB { get; private set; }
+        private SimpleLogTableServcie SimpleLogTableService { get; set; }
+
         public BasketController(IServiceProvider service)
         {
             BasketService = service.GetRequiredService<BasketService>();
             DB = service.GetRequiredService<StorageContext>();
+            SimpleLogTableService = service.GetRequiredService<SimpleLogTableServcie>();
+
         }
         [HttpGet("{id}")]
         public async Task<ActionResult> GetBasketById(Guid id)
@@ -35,13 +41,29 @@ namespace StorageAPI.Controllers
             return Ok(Basket);
         }
         [HttpPost]
+        [Authorize(AuthenticationSchemes = "Bearer")]
         public async Task<ActionResult> AddProducts([FromBody] IAddProductsToBasket items)
         {
+            var username = User.Claims.FirstOrDefault(x => x.Type == "FullName").Value;
+
             var situation = await BasketService.AddProductsToBasket(items);
             if (situation == ProblemWithBasket.AllIsOkey)
             {
-                
-                return Ok(await DB.CatalogDB.FirstOrDefaultAsync(x => x.Id == items.CatalogId));
+
+                var catalogFromDB = await DB.CatalogDB.Include(x => x.Warehouse).FirstOrDefaultAsync(x => x.Id == items.CatalogId);
+                var catalogVM = new CatalogVM
+                {
+                    Id = catalogFromDB.Id,
+                    ProductPrice = catalogFromDB.ProductPrice,
+                    CurrentAmount = catalogFromDB.CurrentAmount,
+                    MaximumAmount = catalogFromDB.MaximumAmount,
+                    MinimumAmount = catalogFromDB.MinimumAmount,
+                    WarehouseId = catalogFromDB.WarehouseId,
+                    Name = catalogFromDB.Name.Name
+                };
+                await SimpleLogTableService.AddLog($"Added {items.ProductAmount} {items.Name} in basket from {catalogFromDB.Warehouse.Name} warehouse", username);
+
+                return Ok(catalogVM);
             }
             else
             {
@@ -49,13 +71,28 @@ namespace StorageAPI.Controllers
             }
         }
         [HttpPost("remove-from-basket")]
+        [Authorize(AuthenticationSchemes = "Bearer")]
         public async Task<ActionResult> RemoveProductsFromBasket([FromBody] IAddProductsToBasket items)
         {
+            var username = User.Claims.FirstOrDefault(x => x.Type == "FullName").Value;
+
             var situation = await BasketService.AddProductsToCatalogFromBasket(items);
             if (situation == ProblemWithBasket.AllIsOkey)
             {
+                var catalogFromDB = await DB.CatalogDB.Include(x => x.Warehouse).FirstOrDefaultAsync(x => x.Id == items.CatalogId);
+                var catalogVM = new CatalogVM
+                {
+                    Id = catalogFromDB.Id,
+                    ProductPrice = catalogFromDB.ProductPrice,
+                    CurrentAmount = catalogFromDB.CurrentAmount,
+                    MaximumAmount = catalogFromDB.MaximumAmount,
+                    MinimumAmount = catalogFromDB.MinimumAmount,
+                    WarehouseId = catalogFromDB.WarehouseId,
+                    Name = catalogFromDB.Name.Name
+                };
+                await SimpleLogTableService.AddLog($"Removed from basket {items.ProductAmount} {items.Name} products to {catalogFromDB.Warehouse.Name} warehouse", username);
 
-                return Ok(await DB.CatalogDB.FirstOrDefaultAsync(x => x.Id == items.CatalogId));
+                return Ok(catalogVM);
             }
             else
             {

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Identity;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -16,5 +17,6 @@ namespace StorageAPI.ModelsVM
         public string PasswordConfirm { get; set; }
         [Required]
         public string FullName { get; set; }
+        public string RoleName { get; set; }
     }
 }
