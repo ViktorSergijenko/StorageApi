@@ -18,5 +18,6 @@ namespace StorageAPI.ModelsVM
         [Required]
         public string FullName { get; set; }
         public string RoleName { get; set; }
+        public bool HasAbilityToLoad { get; set; }
     }
 }

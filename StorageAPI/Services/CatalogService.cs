@@ -107,6 +107,8 @@ namespace StorageAPI.Services
             {
                 var catalogName = await DB.CatalogNameDB.FirstOrDefaultAsync(x => x.Name == catalog.Name.Name);
                 
+
+
                 if (catalogName != null)
                 {
                     catalog.CatalogNameId = catalogName.Id;
@@ -114,8 +116,14 @@ namespace StorageAPI.Services
                     await DB.CatalogDB.AddAsync(catalog);
                     catalogName.Amount++;
                     DB.CatalogNameDB.Update(catalogName);
-                    await CheckIfProductsNeedsToBeCreated(catalog);
-                    await SimpleLogTableService.AddLog($"Catalog {catalogName.Name} was created in {warehouse.Name} warehouse", username);
+                    warehouse.HasMinCatalogs = true;
+                    DB.WarehouseDB.Update(warehouse);
+                    //await CheckIfProductsNeedsToBeCreated(catalog);
+                    await SimpleLogTableService.AddAdminLog($"Catalog {catalogName.Name} bija izveidots {warehouse.Name} noliktava", username);
+                    if (catalog.CurrentAmount != 0)
+                    {
+                        //await SimpleLogTableService.AddLog($"Veidojot katalogu: {catalogName.Name} {warehouse.Name} noliktava, bija izveidoti {catalog.CurrentAmount} produkti", username);
+                    }
                     // Saving changes in DB
                     await DB.SaveChangesAsync();
                 }
@@ -130,12 +138,15 @@ namespace StorageAPI.Services
                 // Getting object from DB that has similar id like in our param variable
                 var catalogFromDb = await DB.CatalogDB.FirstOrDefaultAsync(x => x.Id == catalog.Id);
                 // Using mapper to edit all fields
-                catalog = Mapper.Map(catalog, catalogFromDb);
+                catalogFromDb.MaximumAmount = catalog.MaximumAmount;
+                catalogFromDb.MinimumAmount = catalog.MinimumAmount;
+                catalogFromDb.ProductPrice = catalog.ProductPrice;
+                catalogFromDb.Type = catalog.Type;
                 // Updating DB
-                DB.CatalogDB.Update(catalog);
+                DB.CatalogDB.Update(catalogFromDb);
                 // Saving changes in DB
                 await DB.SaveChangesAsync();
-                await SimpleLogTableService.AddLog($"Catalog {catalogFromDb.Name} was modified in {warehouse.Name} warehouse", username);
+                await SimpleLogTableService.AddAdminLog($"Catalog {catalogFromDb.Name} informacija bija izmainīta {warehouse.Name} noliktava", username);
 
             }
             // Returning object
@@ -152,6 +163,13 @@ namespace StorageAPI.Services
         {
             // Getting catalog from DB with the same id like in param
             var catalog = await DB.CatalogDB.Include(x => x.Name).Include(x => x.Warehouse).FirstOrDefaultAsync(x => x.Id == id);
+            var warehouseHasCatalogs = await DB.CatalogDB.CountAsync(x => x.WarehouseId == catalog.WarehouseId);
+            if (warehouseHasCatalogs >= 1)
+            {
+                var warehouse = await DB.WarehouseDB.FirstOrDefaultAsync(x => x.Id == catalog.WarehouseId);
+                warehouse.HasMinCatalogs = false;
+                DB.WarehouseDB.Update(warehouse);
+            }
             // Checkinf if warehouse variable for null
             if (catalog == null)
             {
@@ -164,7 +182,7 @@ namespace StorageAPI.Services
             DB.CatalogNameDB.Update(catalog.Name);
             // Saving changes
             await DB.SaveChangesAsync();
-            await SimpleLogTableService.AddAdminLog($"Catalog {catalog.Name} was deleted in {catalog.Warehouse.Name} warehouse", username);
+            await SimpleLogTableService.AddAdminLog($"Catalog {catalog.Name} bija nodzests {catalog.Warehouse.Name} noliktava", username);
 
         }
 
@@ -187,12 +205,11 @@ namespace StorageAPI.Services
         public async Task<ProblemWithBasket> RemoveProductsFromCatalogManually(IAddProductsToBasket items)
         {
             var getCatalog = await GetCatatolById(items.CatalogId);
-            var productListFromCatalog = await DB.ProductDB.Where(x => x.CatalogId == items.CatalogId).ToListAsync();
-            if (productListFromCatalog != null)
+            if (getCatalog.CurrentAmount >= items.ProductAmount)
             {
-                var productsToRemove = CheckForNeededAmountOfProducts(productListFromCatalog, items.ProductAmount);
+                //var productsToRemove = CheckForNeededAmountOfProducts(productListFromCatalog, items.ProductAmount);
                 // Adding all products to catalogs in basket
-                await RemoveProductsManually(productsToRemove, getCatalog);
+                await RemoveProductsManually(items.ProductAmount, getCatalog);
                 return ProblemWithBasket.AllIsOkey;
             }
             else
@@ -276,22 +293,32 @@ namespace StorageAPI.Services
         /// <returns>Modified basket with new products</returns>
         private async Task AddProductsManually(Catalog catalogInWarehouse, int amountOfProducts)
         {
-            // Looping every catalog in basket
-            Random rndNumber = new Random();
-            if (amountOfProducts > 0)
-            { 
-                for (int i = 0; i < amountOfProducts; i++)
-                {
-                    Product newProduct = new Product()
-                    {
-                        Name = catalogInWarehouse.Name.Name,
-                        PricePerOne = catalogInWarehouse.ProductPrice,
-                        VendorCode = $"{catalogInWarehouse.Name.Name[0]}{catalogInWarehouse.Name.Name[1]}{rndNumber.Next(10)}{rndNumber.Next(10)}{rndNumber.Next(10)}{rndNumber.Next(10)}{rndNumber.Next(10)}{rndNumber.Next(10)}{rndNumber.Next(10)}{rndNumber.Next(10)}{rndNumber.Next(10)}{rndNumber.Next(10)}{rndNumber.Next(10)}{rndNumber.Next(10)}",
-                        CatalogId = catalogInWarehouse.Id
-                    };
-                    await DB.ProductDB.AddAsync(newProduct);
-                    catalogInWarehouse.CurrentAmount++;
-                }
+            var warehouse = await DB.WarehouseDB.FirstOrDefaultAsync(x => x.Id == catalogInWarehouse.WarehouseId);
+            //// Looping every catalog in basket
+            //Random rndNumber = new Random();
+            //if (amountOfProducts > 0)
+            //{ 
+            //    for (int i = 0; i < amountOfProducts; i++)
+            //    {
+            //        Product newProduct = new Product()
+            //        {
+            //            Name = catalogInWarehouse.Name.Name,
+            //            PricePerOne = catalogInWarehouse.ProductPrice,
+            //            VendorCode = $"{catalogInWarehouse.Name.Name[0]}{catalogInWarehouse.Name.Name[1]}{rndNumber.Next(10)}{rndNumber.Next(10)}{rndNumber.Next(10)}{rndNumber.Next(10)}{rndNumber.Next(10)}{rndNumber.Next(10)}{rndNumber.Next(10)}{rndNumber.Next(10)}{rndNumber.Next(10)}{rndNumber.Next(10)}{rndNumber.Next(10)}{rndNumber.Next(10)}",
+            //            CatalogId = catalogInWarehouse.Id
+            //        };
+            //        await DB.ProductDB.AddAsync(newProduct);
+            //        catalogInWarehouse.CurrentAmount++;
+            //    }
+            //}
+            catalogInWarehouse.CurrentAmount += amountOfProducts;
+            if (catalogInWarehouse.CurrentAmount <= catalogInWarehouse.MinimumAmount)
+            {
+                warehouse.HasMinCatalogs = true;
+            }
+            else
+            {
+                warehouse.HasMinCatalogs = false;
             }
             DB.CatalogDB.Update(catalogInWarehouse);
             // Saving all Changes in DB
@@ -303,16 +330,27 @@ namespace StorageAPI.Services
         /// <param name="basket">Basket in that we are putting our product</param>
         /// <param name="productList">All product list that we are putting in our basket</param>
         /// <returns>Modified basket with new products</returns>
-        private async Task RemoveProductsManually(List<Product> productList, Catalog catalog)
+        private async Task RemoveProductsManually(int amountOfProducts, Catalog catalog)
         {
-            if (productList.Count > 0)
+            var warehouse = await DB.WarehouseDB.FirstOrDefaultAsync(x => x.Id == catalog.WarehouseId);
+            //if (productList.Count > 0)
+            //{
+            //    foreach (var product in productList)
+            //    {
+            //        DB.ProductDB.Remove(product);
+            //        catalog.CurrentAmount--;
+            //    }
+            //}
+            catalog.CurrentAmount -= amountOfProducts;
+            if (catalog.CurrentAmount <= catalog.MinimumAmount)
             {
-                foreach (var product in productList)
-                {
-                    DB.ProductDB.Remove(product);
-                    catalog.CurrentAmount--;
-                }
+                warehouse.HasMinCatalogs = true;
             }
+            else
+            {
+                warehouse.HasMinCatalogs = false;
+            }
+
             DB.CatalogDB.Update(catalog);
             // Saving all Changes in DB
             await DB.SaveChangesAsync();

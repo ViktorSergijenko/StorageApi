@@ -49,42 +49,104 @@ namespace StorageAPI.Services
         /// <returns></returns>
         public async Task<ProblemWithBasket> AddProductsToBasket(IAddProductsToBasket items)
         {
-            // Getting basket from Db
+            //// Getting basket from Db
+            //var basketFromDb = await GetBasketById(items.BasketId);
+            //var productsFromDb = await DB.ProductDB.Where(x => x.CatalogId == items.CatalogId).ToListAsync();
+            //var productList = CheckForNeededAmountOfProducts(productsFromDb, items.ProductAmount);
+            //if (productList != null)
+            //{
+            //    // Adding new catalogs to store products from list, if needed
+            //    basketFromDb = await CheckForNewCatalogs(basketFromDb, productList);
+            //    // Adding all products to catalogs in basket
+            //    await AddProductsToCatalogsInBasket(basketFromDb, productList);
+            //    return ProblemWithBasket.AllIsOkey;
+            //}
+            //else
+            //{
+            //    return ProblemWithBasket.NotEnoughProductsInCatalog;
+            //}
             var basketFromDb = await GetBasketById(items.BasketId);
-            var productsFromDb = await DB.ProductDB.Where(x => x.CatalogId == items.CatalogId).ToListAsync();
-            var productList = CheckForNeededAmountOfProducts(productsFromDb, items.ProductAmount);
-            if (productList != null)
-            {
-                // Adding new catalogs to store products from list, if needed
-                basketFromDb = await CheckForNewCatalogs(basketFromDb, productList);
-                // Adding all products to catalogs in basket
-                await AddProductsToCatalogsInBasket(basketFromDb, productList);
-                return ProblemWithBasket.AllIsOkey;
-            }
-            else
+
+            var catalogInWarehouse = await DB.CatalogDB.FirstOrDefaultAsync(x => x.Id == items.CatalogId);
+            basketFromDb = await CheckForNewCatalogs(basketFromDb, items.Name, catalogInWarehouse);
+            var catalogFromBasket = await DB.CatalogDB.FirstOrDefaultAsync(x => x.Name.Name == items.Name && x.BasketId == basketFromDb.Id);
+            if (catalogInWarehouse.CurrentAmount < items.ProductAmount)
             {
                 return ProblemWithBasket.NotEnoughProductsInCatalog;
             }
-          
+            else
+            {
+                catalogFromBasket.CurrentAmount += items.ProductAmount;
+                catalogInWarehouse.CurrentAmount -= items.ProductAmount;
+                var warehouse = await DB.WarehouseDB.FirstOrDefaultAsync(x => x.Id == catalogInWarehouse.WarehouseId);
+                if (catalogInWarehouse.CurrentAmount <= catalogInWarehouse.MinimumAmount)
+                {
+                    warehouse.HasMinCatalogs = true;
+                }
+                else
+                {
+                    warehouse.HasMinCatalogs = false;
+                }
+                DB.CatalogDB.Update(catalogFromBasket);
+                DB.CatalogDB.Update(catalogInWarehouse);
+                await DB.SaveChangesAsync();
+                return ProblemWithBasket.AllIsOkey;
+            }
+
         }
         public async Task<ProblemWithBasket> AddProductsToCatalogFromBasket(IAddProductsToBasket items)
         {
-            // Getting basket from Db
+            //// Getting basket from Db
+            //var basketFromDb = await GetBasketById(items.BasketId);
+            //var catalogFromBasket = basketFromDb.Catalogs.FirstOrDefault(x => x.Name.Name == items.Name);
+            //var catalogInWarehouse = await DB.CatalogDB.FirstOrDefaultAsync(x => x.Id == items.CatalogId);
+            //var productsFromDb = await DB.ProductDB.Where(x => x.CatalogId == catalogFromBasket.Id).ToListAsync();
+            //var productList = CheckForNeededAmountOfProducts(productsFromDb, items.ProductAmount);
+            //if (productsFromDb != null)
+            //{
+            //    // Adding all products to catalogs in basket
+            //    await AddProductsToCatalogsFromBasket(basketFromDb, catalogFromBasket, catalogInWarehouse, productList);
+            //    return ProblemWithBasket.AllIsOkey;
+            //}
+            //else
+            //{
+            //    return ProblemWithBasket.NotEnoughProductsInCatalog;
+            //}
+
             var basketFromDb = await GetBasketById(items.BasketId);
             var catalogFromBasket = basketFromDb.Catalogs.FirstOrDefault(x => x.Name.Name == items.Name);
             var catalogInWarehouse = await DB.CatalogDB.FirstOrDefaultAsync(x => x.Id == items.CatalogId);
-            var productsFromDb = await DB.ProductDB.Where(x => x.CatalogId == catalogFromBasket.Id).ToListAsync();
-            var productList = CheckForNeededAmountOfProducts(productsFromDb, items.ProductAmount);
-            if (productsFromDb != null)
-            {
-                // Adding all products to catalogs in basket
-                await AddProductsToCatalogsFromBasket(basketFromDb, catalogFromBasket, catalogInWarehouse, productList);
-                return ProblemWithBasket.AllIsOkey;
-            }
-            else
+            if (catalogFromBasket.CurrentAmount < items.ProductAmount)
             {
                 return ProblemWithBasket.NotEnoughProductsInCatalog;
             }
+            else
+            {
+                catalogFromBasket.CurrentAmount -= items.ProductAmount;
+                catalogInWarehouse.CurrentAmount += items.ProductAmount;
+                var warehouse = await DB.WarehouseDB.FirstOrDefaultAsync(x => x.Id == catalogInWarehouse.WarehouseId);
+                if (catalogInWarehouse.CurrentAmount <= catalogInWarehouse.MinimumAmount)
+                {
+                    warehouse.HasMinCatalogs = true;
+                }
+                else
+                {
+                    warehouse.HasMinCatalogs = false;
+                }
+                if (catalogFromBasket.CurrentAmount == 0)
+                {
+                    DB.CatalogDB.Remove(catalogFromBasket);
+                }
+                else
+                {
+                    DB.CatalogDB.Update(catalogFromBasket);
+
+                }
+                DB.CatalogDB.Update(catalogInWarehouse);
+                await DB.SaveChangesAsync();
+                return ProblemWithBasket.AllIsOkey;
+            }
+
         }
 
 
@@ -111,25 +173,36 @@ namespace StorageAPI.Services
         /// <param name="basket">Basket in that we are going to put all products from productList</param>
         /// <param name="productList">All products that we are going to put in basket</param>
         /// <returns>New basket with new catalogs</returns>
-        private async Task<Basket> CheckForNewCatalogs(Basket basket, List<Product> productList)
+        private async Task<Basket> CheckForNewCatalogs(Basket basket, string catalogName, Catalog catalogFromWarehouse)
         {
-            // Looping all products from product list
-            foreach (var product in productList)
+            //// Looping all products from product list
+            //foreach (var product in productList)
+            //{
+            //    // If there's no catalog with the same name as product, that means that we need to add new catalog to basket, so we could store this product
+            //    if (!basket.Catalogs.Any(x => x.Name.Name == product.Name))
+            //    {
+            //        // Creating new catalog
+            //        Catalog newCatalog = new Catalog();
+            //        var catalogName = await DB.CatalogNameDB.FirstOrDefaultAsync(x => x.Name == product.Name);
+            //        newCatalog.CatalogNameId = catalogName.Id;
+            //        newCatalog.BasketId = basket.Id;
+            //        // Adding it to DB
+            //        await DB.CatalogDB.AddAsync(newCatalog);
+            //    }
+            //}
+            var neededCatalog = await DB.CatalogDB.Include(x => x.Name).AnyAsync(x => x.Name.Name == catalogName && x.BasketId == basket.Id);
+            if (!neededCatalog)
             {
-                // If there's no catalog with the same name as product, that means that we need to add new catalog to basket, so we could store this product
-                if (!basket.Catalogs.Any(x => x.Name.Name == product.Name))
-                {
-                    // Creating new catalog
-                    Catalog newCatalog = new Catalog();
-                    var catalogName = await DB.CatalogNameDB.FirstOrDefaultAsync(x => x.Name == product.Name);
-                    newCatalog.CatalogNameId = catalogName.Id;
-                    newCatalog.BasketId = basket.Id;
-                    // Adding it to DB
-                    await DB.CatalogDB.AddAsync(newCatalog);
-                }
-            }
+                Catalog newCatalog = new Catalog();
+                var nameForCatalog = await DB.CatalogNameDB.FirstOrDefaultAsync(x => x.Name == catalogName);
+                newCatalog.CatalogNameId = nameForCatalog.Id;
+                newCatalog.BasketId = basket.Id;
+                newCatalog.Type = catalogFromWarehouse.Type;
+                // Adding it to DB
+                await DB.CatalogDB.AddAsync(newCatalog);
             // Saving all changes in DB
             await DB.SaveChangesAsync();
+            }
             // Returning new basket
             return basket;
         }

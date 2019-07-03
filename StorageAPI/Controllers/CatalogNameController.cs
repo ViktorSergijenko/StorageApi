@@ -81,7 +81,7 @@ namespace StorageAPI.Controllers
             else
             {
                 DB.CatalogNameDB.Remove(objectToDelete);
-                await SimpleLogTableService.AddAdminLog($"Deleted catalog name: {objectToDelete.Name}", username);
+                await SimpleLogTableService.AddAdminLog($"Nodzesa kataloga nosaukumu: {objectToDelete.Name}", username);
 
             }
             return Ok();

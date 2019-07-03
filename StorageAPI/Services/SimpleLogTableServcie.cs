@@ -16,15 +16,9 @@ namespace StorageAPI.Services
             DB = service.GetService<StorageContext>();
         }
 
-        public async Task AddLog(string action, string username)
+        public async Task AddLog(SimpleLogTable log)
         {
-            var newLog = new SimpleLogTable() {
-                UserName = username,
-                Action = action,
-                Date = DateTime.Now
-                
-            };
-            await DB.SimpleLogTableDB.AddAsync(newLog);
+            await DB.SimpleLogTableDB.AddAsync(log);
             await DB.SaveChangesAsync();
         }
 

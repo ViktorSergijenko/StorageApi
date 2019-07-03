@@ -59,9 +59,11 @@ namespace StorageAPI.Controllers
                     MaximumAmount = catalogFromDB.MaximumAmount,
                     MinimumAmount = catalogFromDB.MinimumAmount,
                     WarehouseId = catalogFromDB.WarehouseId,
-                    Name = catalogFromDB.Name.Name
+                    Name = catalogFromDB.Name.Name,
+                    Type = catalogFromDB.Type
+
                 };
-                await SimpleLogTableService.AddLog($"Added {items.ProductAmount} {items.Name} in basket from {catalogFromDB.Warehouse.Name} warehouse", username);
+                //await SimpleLogTableService.AddLog($"Pievienoja {items.ProductAmount} {items.Name} grozā no {catalogFromDB.Warehouse.Name} noliktava", username);
 
                 return Ok(catalogVM);
             }
@@ -88,9 +90,11 @@ namespace StorageAPI.Controllers
                     MaximumAmount = catalogFromDB.MaximumAmount,
                     MinimumAmount = catalogFromDB.MinimumAmount,
                     WarehouseId = catalogFromDB.WarehouseId,
-                    Name = catalogFromDB.Name.Name
+                    Name = catalogFromDB.Name.Name,
+                    Type = catalogFromDB.Type
+
                 };
-                await SimpleLogTableService.AddLog($"Removed from basket {items.ProductAmount} {items.Name} products to {catalogFromDB.Warehouse.Name} warehouse", username);
+                //await SimpleLogTableService.AddLog($"Noņema no groza {items.ProductAmount} {items.Name} produktus uz {catalogFromDB.Warehouse.Name} noliktavu", username);
 
                 return Ok(catalogVM);
             }

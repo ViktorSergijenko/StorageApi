@@ -79,7 +79,8 @@ namespace StorageAPI.Controllers
                     MaximumAmount = x.MaximumAmount,
                     MinimumAmount = x.MinimumAmount,
                     WarehouseId = x.WarehouseId,
-                    Name = x.Name.Name               
+                    Name = x.Name.Name,
+                    Type = x.Type
                 };
 
                 catalogListVM.Add(catalogVM);
@@ -107,7 +108,8 @@ namespace StorageAPI.Controllers
                     MaximumAmount = x.MaximumAmount,
                     MinimumAmount = x.MinimumAmount,
                     WarehouseId = x.WarehouseId,
-                    Name = x.Name.Name
+                    Name = x.Name.Name,
+                    Type = x.Type
                 };
 
                 catalogListVM.Add(catalogVM);
@@ -131,7 +133,9 @@ namespace StorageAPI.Controllers
                     MaximumAmount = x.MaximumAmount,
                     MinimumAmount = x.MinimumAmount,
                     WarehouseId = x.WarehouseId,
-                    Name = x.Name.Name
+                    Name = x.Name.Name,
+                    Type = x.Type
+
                 };
 
                 catalogListVM.Add(catalogVM);
@@ -161,7 +165,8 @@ namespace StorageAPI.Controllers
                 CurrentAmount = Catalog.CurrentAmount,
                 MaximumAmount = Catalog.MaximumAmount,
                 MinimumAmount = Catalog.MinimumAmount,
-                WarehouseId = Catalog.WarehouseId 
+                WarehouseId = Catalog.WarehouseId,
+                Type = Catalog.Type
             };
             // Adding new Catalog by calling a method that will add it to DB
             var newCatalog = await CatalogService.SaveCatalog(catalog, username);
@@ -178,7 +183,9 @@ namespace StorageAPI.Controllers
                 MaximumAmount = newCatalog.MaximumAmount,
                 MinimumAmount = newCatalog.MinimumAmount,
                 WarehouseId = newCatalog.WarehouseId,
-                Name = newCatalog.Name.Name
+                Name = newCatalog.Name.Name,
+                Type = Catalog.Type
+
             };
             // Returning new Catalog
             return Ok(catalogVM);
@@ -218,9 +225,11 @@ namespace StorageAPI.Controllers
                     MaximumAmount = catalogFromDB.MaximumAmount,
                     MinimumAmount = catalogFromDB.MinimumAmount,
                     WarehouseId = catalogFromDB.WarehouseId,
-                    Name = catalogFromDB.Name.Name
-                };
-                await SimpleLogTableService.AddLog($"Added manually {items.ProductAmount} {items.Name} products to {catalogVM.Name} in {catalogFromDB.Warehouse.Name} warehouse", username);
+                    Name = catalogFromDB.Name.Name,
+                    Type = catalogFromDB.Type
+
+                 };
+                //await SimpleLogTableService.AddLog($"Pievienoja manuāli {items.ProductAmount} {items.Name} produktus uz {catalogVM.Name} kās atrodas {catalogFromDB.Warehouse.Name} noliktava", username);
                 return Ok(catalogVM);
             }
             else
@@ -245,9 +254,11 @@ namespace StorageAPI.Controllers
                     MaximumAmount = catalogFromDB.MaximumAmount,
                     MinimumAmount = catalogFromDB.MinimumAmount,
                     WarehouseId = catalogFromDB.WarehouseId,
-                    Name = catalogFromDB.Name.Name
+                    Name = catalogFromDB.Name.Name,
+                    Type = catalogFromDB.Type
+
                 };
-                await SimpleLogTableService.AddLog($"Removed manually {items.ProductAmount} {items.Name} products from {catalogVM.Name} in {catalogFromDB.Warehouse.Name} warehouse", username);
+                //await SimpleLogTableService.AddLog($"Noņema manuāli {items.ProductAmount} {items.Name} produktus no {catalogVM.Name} kās atrodas {catalogFromDB.Warehouse.Name} noliktava", username);
 
                 return Ok(catalogVM);
             }

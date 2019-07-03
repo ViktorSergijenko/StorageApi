@@ -18,6 +18,7 @@ namespace StorageAPI.Models
             Catalogs = new List<Catalog>();
             News = new List<News>();
             UserWarehouse = new List<UserWarehouse>();
+            WarehouseLogs = new List<SimpleLogTable>();
         }
         /// <summary>
         /// Name of the warehouse
@@ -31,6 +32,7 @@ namespace StorageAPI.Models
         /// Flag that indicates does warehouse have some kind of problems
         /// </summary>
         public bool HasProblems { get; set; }
+        public bool HasMinCatalogs { get; set; }
         /// <summary>
         /// Location name
         /// </summary>
@@ -53,6 +55,7 @@ namespace StorageAPI.Models
         public List<Catalog> Catalogs { get; set; }
         public List<News> News { get; set; }
         public List<UserWarehouse> UserWarehouse { get; set; }
+        public List<SimpleLogTable> WarehouseLogs { get; set; }
 
     }
 

@@ -11,7 +11,15 @@ namespace StorageAPI.Configs.Profiles
     {
         public NewsProfile()
         {
-            CreateMap<News, News>();
+            CreateMap<News, News>()
+                .ForMember(x => x.Author, o => o.Ignore())
+                .ForMember(x => x.NewsComments, o => o.Ignore())
+                .ForMember(x => x.CreatedDate, o => o.Ignore())
+                .ForMember(x => x.FixedDate, o => o.Ignore())
+                .ForMember(x => x.IsDeleted, o => o.Ignore())
+
+            ;
+            
         }
     }
 }

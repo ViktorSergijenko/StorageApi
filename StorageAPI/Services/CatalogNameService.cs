@@ -50,7 +50,7 @@ namespace StorageAPI.Services
             if (catalogName.Id == null || catalogName.Id.Equals(Guid.Empty))
             {
                 await DB.CatalogNameDB.AddAsync(catalogName);
-                await SimpleLogTableService.AddAdminLog($"Created catalog name: {catalogName.Name}", username);
+                await SimpleLogTableService.AddAdminLog($"Izveidoja kataloga nosaukumu: {catalogName.Name}", username);
 
             }
             else
@@ -59,7 +59,7 @@ namespace StorageAPI.Services
                 var oldCatalogName = catalogNameFromDb.Name;
                 catalogNameFromDb.Name = catalogName.Name;
                 DB.CatalogNameDB.Update(catalogNameFromDb);
-                await SimpleLogTableService.AddAdminLog($"Changed catalog name from '{oldCatalogName}' to '{catalogName.Name}'", username);
+                await SimpleLogTableService.AddAdminLog($"Mainīja kataloga nosaukumu no '{oldCatalogName}' uz '{catalogName.Name}'", username);
             }
             await DB.SaveChangesAsync();
             return catalogName;

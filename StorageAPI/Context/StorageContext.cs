@@ -102,12 +102,26 @@ namespace StorageAPI.Context
             modelBuilder.Entity<UserWarehouse>()
                 .HasOne<Warehouse>(sc => sc.Warehouse)
                 .WithMany(s => s.UserWarehouse)
-                .HasForeignKey(sc => sc.WarehouseId);
+                .HasForeignKey(sc => sc.WarehouseId)
+                ;
 
             modelBuilder.Entity<UserWarehouse>()
                 .HasOne<User>(sc => sc.User)
                 .WithMany(s => s.UserWarehouse)
-                .HasForeignKey(sc => sc.UserId);
+                .HasForeignKey(sc => sc.UserId)
+                ;
+
+            modelBuilder.Entity<SimpleLogTable>()
+                .HasOne(x => x.Warehouse)
+                .WithMany(x => x.WarehouseLogs)
+                .HasForeignKey(x => x.WarehouseId)
+                ;
+
+            modelBuilder.Entity<NewsComment>()
+                .HasOne(x => x.News)
+                .WithMany(x => x.NewsComments)
+                .HasForeignKey(x => x.NewsId)
+                ;
 
             base.OnModelCreating(modelBuilder);
 
@@ -119,6 +133,8 @@ namespace StorageAPI.Context
         public DbSet<Catalog> CatalogDB { get; set; }
         public DbSet<Product> ProductDB { get; set; }
         public DbSet<News> NewsDB { get; set; }
+        public DbSet<NewsComment> NewsCommentDB { get; set; }
+
         public DbSet<Basket> Baskets { get; set; }
         public DbSet<CatalogName> CatalogNameDB { get; set; }
         public DbSet<UserWarehouse> UserWarehouseDB { get; set; }

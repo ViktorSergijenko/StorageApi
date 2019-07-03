@@ -58,5 +58,6 @@ namespace StorageAPI.Models
         /// List of products
         /// </summary>
         public List<Product> Products { get; set; }
+        public bool Type { get; set; }
     }
 }

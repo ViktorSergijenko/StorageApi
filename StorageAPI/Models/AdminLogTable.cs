@@ -9,6 +9,8 @@ namespace StorageAPI.Models
     {
         public string UserName { get; set; }
         public string Action { get; set; }
+        public string Where { get; set; }
+        public string What { get; set; }
         public DateTime Date { get; set; }
     }
 }

@@ -30,6 +30,27 @@ namespace StorageAPI.Services
         public async Task<List<News>> GetWarehouseNewsById(Guid id)
         {
             // Getting warehouse news from DB
+            var warehouseNews = await DB.NewsDB.Where(x => x.WarehouseId == id && x.IsDeleted == false).ToListAsync();
+            // Checking if it's not null
+            if (warehouseNews == null)
+            {
+                // If it's null, then we will throw new exception
+                throw new Exception("Not found");
+            }
+            // If object was found, then we return it
+            else
+            {
+                return warehouseNews;
+            }
+        }
+        /// <summary>
+        /// Method gets warehouse news by warehouse id
+        /// </summary>
+        /// <param name="id">Id of an warehouse that news we want to get</param>
+        /// <returns>Warehouse from DB</returns>
+        public async Task<List<News>> GetWarehouseNewsForTableById(Guid id)
+        {
+            // Getting warehouse news from DB
             var warehouseNews = await DB.NewsDB.Where(x => x.WarehouseId == id).ToListAsync();
             // Checking if it's not null
             if (warehouseNews == null)
@@ -59,8 +80,9 @@ namespace StorageAPI.Services
                 // If it's null then we throw exception
                 throw new Exception("Not found");
             }
+            news.IsDeleted = true;
             // Removing warehouse from DB
-            DB.NewsDB.Remove(news);
+            DB.NewsDB.Update(news);
             // Saving changes
             await DB.SaveChangesAsync();
             return news;
@@ -79,10 +101,11 @@ namespace StorageAPI.Services
             {
                 var warehouse = await DB.WarehouseDB.FirstOrDefaultAsync(x => x.Id == news.WarehouseId);
                 warehouse.HasProblems = true;
+                news.Author = username;
+                news.CreatedDate = DateTime.Now;
                 // Adding new warehouse to DB
                 DB.NewsDB.Add(news);
                 DB.WarehouseDB.Update(warehouse);
-                await SimpleLogTableService.AddAdminLog($"Created problem related with: {news.Title} in {warehouse.Name} warehouse", username);
 
 
 
@@ -100,18 +123,22 @@ namespace StorageAPI.Services
                 Mapper.Map(news, newsFromDb);
                 // Updating DB
                 DB.NewsDB.Update(newsFromDb);
-                await SimpleLogTableService.AddAdminLog($"Modified problem information related with: {news.Title} in {news.Warehouse.Name} warehouse", username);
                 // Saving changes in DB
                 await DB.SaveChangesAsync();
             }
             // Returning object
             return news;
         }
-
-        public async Task<News> toggleNewsFixedProblemFlag(Guid id)
+        public async Task AddCommentsForNews(NewsComment newsComment)
+        {
+            newsComment.Date = DateTime.Now;
+            await DB.NewsCommentDB.AddAsync(newsComment);
+            await DB.SaveChangesAsync();
+        }
+        public async Task<News> toggleNewsFixedProblemFlag(NewsResolveDTO newsDTO)
         {
             // Getting warehouse news from DB
-            var warehouseNews = await DB.NewsDB.Include(o => o.Warehouse).FirstOrDefaultAsync(x => x.Id == id);
+            var warehouseNews = await DB.NewsDB.Include(o => o.Warehouse).FirstOrDefaultAsync(x => x.Id == newsDTO.Id);
             // Checking if it's not null
             if (warehouseNews == null)
             {
@@ -123,6 +150,8 @@ namespace StorageAPI.Services
             {
                 // Cahnging flag value to true
                 warehouseNews.FixedProblem = true;
+                warehouseNews.FixedDate = DateTime.Now;
+                warehouseNews.AuthorAcceptedFix = newsDTO.AuthorAcceptedFix;
                 // Updating DB
                 DB.NewsDB.Update(warehouseNews);
                 // Saving changes in DB, because next step will also include DB operations

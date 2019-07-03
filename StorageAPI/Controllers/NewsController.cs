@@ -51,9 +51,51 @@ namespace StorageAPI.Controllers
         public async Task<ActionResult> GetWarehouseNewsById(Guid warehouseId)
         {
             // Getting warehouse news by id
-            var warehouse = await NewsService.GetWarehouseNewsById(warehouseId);
+            var news = await NewsService.GetWarehouseNewsById(warehouseId);
+            var newsSorted = news.OrderByDescending(x => x.CreatedDate).ToList();
             // Returning warehouse news
-            return Ok(warehouse);
+            return Ok(newsSorted);
+        }
+
+        /// <summary>
+        /// Method gets warehouse news by id
+        /// </summary>
+        /// <param name="id">Id of a warehouse that we want to get</param>
+        /// <returns>Ok status with an warehouse object</returns>
+        [HttpGet("table/{warehouseId}")]
+        public async Task<ActionResult> GetWarehouseNewsForTableById(Guid warehouseId)
+        {
+            // Getting warehouse news by id
+            var news = await NewsService.GetWarehouseNewsForTableById(warehouseId);
+            var newsSorted = news.OrderByDescending(x => x.CreatedDate).ToList();
+            // Returning warehouse news
+            return Ok(newsSorted);
+        }
+        [HttpPost("add-comment")]
+        [Authorize(AuthenticationSchemes = "Bearer")]
+        public async Task<ActionResult> AddCommentForNews([FromBody] NewsComment newsComment)
+        {
+            var username = User.Claims.FirstOrDefault(x => x.Type == "FullName").Value;
+            newsComment.Author = username;
+            if (newsComment.Comment == "" || newsComment.Comment == null)
+            {
+                return BadRequest(new { message = "Vajāg uzrakstīt komentaru" });
+            }
+            else
+            {
+                await NewsService.AddCommentsForNews(newsComment);
+            }
+            return Ok();
+        }
+
+        [HttpGet("comments/{newsId}")]
+        public async Task<ActionResult> GetCommentsForNews(Guid newsId)
+        {
+            // Getting warehouse news by id
+            var comments = await DB.NewsCommentDB.Where(x => x.NewsId == newsId).ToListAsync();
+            comments.OrderByDescending(x => x.Date).ToList();
+            // Returning comments for news
+            return Ok(comments);
         }
 
         /// <summary>
@@ -61,15 +103,16 @@ namespace StorageAPI.Controllers
         /// </summary>
         /// <param name="id">Id of a news that we want to toggle</param>
         /// <returns>Ok status with an news object</returns>
-        [HttpGet("fix-news/{warehouseId}")]
+        [HttpPost("fix-news")]
         [Authorize(AuthenticationSchemes = "Bearer")]
-        public async Task<ActionResult> ToggleFixedNewsFlag(Guid warehouseId)
+        public async Task<ActionResult> ToggleFixedNewsFlag([FromBody]NewsResolveDTO newsDTO)
         {
             var username = User.Claims.FirstOrDefault(x => x.Type == "FullName").Value;
+            newsDTO.AuthorAcceptedFix = username;
 
             // Getting warehouse news by id
-            var news = await NewsService.toggleNewsFixedProblemFlag(warehouseId);
-            await SimpleLogTableService.AddLog($"Resolved problems related with: {news.Title}", username);
+            var news = await NewsService.toggleNewsFixedProblemFlag(newsDTO);
+            //await SimpleLogTableService.AddLog($"Atrisinātja problēmu, kas ir saistīta ar: {news.Title}", username);
 
             // Returning warehouse news
             return Ok(news);
@@ -87,7 +130,7 @@ namespace StorageAPI.Controllers
             // Calling method that will delete news from DB
             var news = await NewsService.DeleteNews(id);
             var username = User.Claims.FirstOrDefault(x => x.Type == "FullName").Value;
-            await SimpleLogTableService.AddAdminLog($"Deleted problem related with: {news.Title}", username);
+            await SimpleLogTableService.AddAdminLog($"Izdzēsa problēmu, kas bija saistīta ar: {news.Title}", username);
             // Returning ok status
             return Ok();
         }

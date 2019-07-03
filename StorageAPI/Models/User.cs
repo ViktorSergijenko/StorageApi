@@ -20,6 +20,7 @@ namespace StorageAPI.Models
         public UserSettings Settings { get; set; }
         public string WhoCreated { get; set; }
         public List<UserWarehouse> UserWarehouse { get; set; }
+        public bool HasAbilityToLoad { get; set; }
 
 
     }
@@ -41,6 +42,8 @@ namespace StorageAPI.Models
         public string Email { get; set; }
         public string RoleName { get; set; }
         public string FullName { get; set; }
+        public bool HasAbilityToLoad { get; set; }
+
     }
 
     public class UserWithBasketId
@@ -49,6 +52,8 @@ namespace StorageAPI.Models
         public string Email { get; set; }
         public Guid BasketId { get; set; }
         public string RoleName { get; set; }
+        public bool HasAbilityToLoad { get; set; }
+
     }
     public class ChangePasswordViewModel
     {
@@ -63,5 +68,7 @@ namespace StorageAPI.Models
         public string Email { get; set; }
         public string FullName { get; set; }
         public string RoleName { get; set; }
+        public bool HasAbilityToLoad { get; set; }
+
     }
 }

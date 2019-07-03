@@ -62,7 +62,7 @@ namespace StorageAPI.Services
             {
                 // Adding new warehouse to DB
                await DB.WarehouseDB.AddAsync(warehouse);
-               await SimpleLogTableService.AddAdminLog($"Created warehouse: {warehouse.Name}", username);
+               await SimpleLogTableService.AddAdminLog($"Izveidoja noliktavu: {warehouse.Name}", username);
                 // Saving changes in DB
                 await DB.SaveChangesAsync();
                 // Generating QR code for warehouse
@@ -101,7 +101,7 @@ namespace StorageAPI.Services
             }
             // Removing warehouse from DB
             DB.WarehouseDB.Remove(warehouse);
-            await SimpleLogTableService.AddAdminLog($"Deleted warehouse: {warehouse.Name}", username);
+            await SimpleLogTableService.AddAdminLog($"Nodzesa noliktavu: {warehouse.Name}", username);
 
             // Saving changes
             await DB.SaveChangesAsync();

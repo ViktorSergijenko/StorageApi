@@ -44,7 +44,9 @@ namespace StorageAPI.Controllers
                     FullName = user.FullName,
                     Email = user.Email,
                     BasketId = userBasket.Id,
-                    RoleName = role
+                    RoleName = role,
+                    HasAbilityToLoad = user.HasAbilityToLoad
+                    
                 }
                 );
             }

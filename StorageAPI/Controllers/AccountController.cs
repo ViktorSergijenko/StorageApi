@@ -64,8 +64,9 @@ namespace StorageAPI.Controllers
                     FullName = "Admin Admin",
                     Password = "P@ssw0rd",
                     PasswordConfirm = "P@ssw0rd",
+                    HasAbilityToLoad = true
                 };
-                User newUser = new User { Email = registerInfo.Email, FullName = registerInfo.FullName, UserName = registerInfo.Email};
+                User newUser = new User { Email = registerInfo.Email, FullName = registerInfo.FullName, UserName = registerInfo.Email, HasAbilityToLoad = true};
                 var addedUser = await userManager.CreateAsync(newUser, registerInfo.Password);
                 if (addedUser.Succeeded)
                 {
@@ -117,7 +118,9 @@ namespace StorageAPI.Controllers
                     Id = user.Id,
                     FullName = user.FullName,
                     Email = user.Email,
-                    RoleName = userRoleName[0]
+                    RoleName = userRoleName[0],
+                    HasAbilityToLoad = user.HasAbilityToLoad
+                    
                 };
                 userListWithRoles.Add(userWithRole);
             }
@@ -162,7 +165,12 @@ namespace StorageAPI.Controllers
 
             if (ModelState.IsValid)
             {
-                User user = new User { Email = newUser.Email, FullName = newUser.FullName, UserName = newUser.Email , WhoCreated = whoCreated };
+                User user = new User { Email = newUser.Email, FullName = newUser.FullName, UserName = newUser.Email, WhoCreated = whoCreated };
+                if (newUser.RoleName != "Level four")
+                {
+                    user.HasAbilityToLoad = true;
+                }
+                
                 // Adding new user
                 var addedUser = await userManager.CreateAsync(user, newUser.Password);
                 if (addedUser.Succeeded)
@@ -181,7 +189,7 @@ namespace StorageAPI.Controllers
                     throw new Exception("Something went wrong");
                 }          
             }
-            await SimpleLogTableService.AddAdminLog($"Registered new user: {newUser.FullName}", whoCreated);
+            await SimpleLogTableService.AddAdminLog($"Reģistrēja jauno darbnieku: { newUser.FullName}", whoCreated);
 
             return Ok(newUser);
         }
@@ -198,7 +206,7 @@ namespace StorageAPI.Controllers
             {
                 IdentityResult result = await userManager.DeleteAsync(user);
             }
-            await SimpleLogTableService.AddAdminLog($"Deleted user: {user.FullName}", username);
+            await SimpleLogTableService.AddAdminLog($"Nodzesa darbnieku: {user.FullName}", username);
 
             return Ok();
         }
@@ -227,7 +235,7 @@ namespace StorageAPI.Controllers
                     new Claim("UserID", user.Id.ToString()),
                     new Claim("UserName", user.UserName),
                     new Claim("FullName", user.FullName),
-                    new Claim("Role", userRole[0])
+                    new Claim("Role", userRole[0]),
                 };
                 ClaimsIdentity claimsIdentity =
                 new ClaimsIdentity(claims, "Token", ClaimsIdentity.DefaultNameClaimType,
@@ -280,7 +288,7 @@ namespace StorageAPI.Controllers
                     {
                         user.PasswordHash = _passwordHasher.HashPassword(user, model.NewPassword);
                         await userManager.UpdateAsync(user);
-                        await SimpleLogTableService.AddAdminLog($"Changed password to user: {user.FullName}", username);
+                        await SimpleLogTableService.AddAdminLog($"Izmainīja parole darbniekam: {user.FullName}", username);
                     }
                     else
                     {
@@ -307,6 +315,7 @@ namespace StorageAPI.Controllers
                     user.Email = model.Email;
                     user.UserName = model.Email;
                     user.FullName = model.FullName;
+                    user.HasAbilityToLoad = model.HasAbilityToLoad;
                     var newRole = await roleManager.Roles.FirstOrDefaultAsync(x => x.Name == model.RoleName);
                     var result = await userManager.UpdateAsync(user);
                     if (result.Succeeded)
