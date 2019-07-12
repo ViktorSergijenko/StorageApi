@@ -122,7 +122,18 @@ namespace StorageAPI.Services
                     await SimpleLogTableService.AddAdminLog($"Catalog {catalogName.Name} bija izveidots {warehouse.Name} noliktava", username);
                     if (catalog.CurrentAmount != 0)
                     {
-                        //await SimpleLogTableService.AddLog($"Veidojot katalogu: {catalogName.Name} {warehouse.Name} noliktava, bija izveidoti {catalog.CurrentAmount} produkti", username);
+                        var log = new SimpleLogTable()
+                        {
+                            Date = DateTime.Now,
+                            UserName = username,
+                            Action = "Pievienots",
+                            What = catalogName.Name,
+                            Amount = Math.Abs(catalog.CurrentAmount),
+                            Manually = "Manuāli",
+                            WarehouseId = warehouse.Id,
+                            Where = warehouse.Name
+                        };
+                        await SimpleLogTableService.AddLog(log);
                     }
                     // Saving changes in DB
                     await DB.SaveChangesAsync();
@@ -291,7 +302,7 @@ namespace StorageAPI.Services
         /// <param name="basket">Basket in that we are putting our product</param>
         /// <param name="productList">All product list that we are putting in our basket</param>
         /// <returns>Modified basket with new products</returns>
-        private async Task AddProductsManually(Catalog catalogInWarehouse, int amountOfProducts)
+        private async Task AddProductsManually(Catalog catalogInWarehouse, decimal amountOfProducts)
         {
             var warehouse = await DB.WarehouseDB.FirstOrDefaultAsync(x => x.Id == catalogInWarehouse.WarehouseId);
             //// Looping every catalog in basket
@@ -330,7 +341,7 @@ namespace StorageAPI.Services
         /// <param name="basket">Basket in that we are putting our product</param>
         /// <param name="productList">All product list that we are putting in our basket</param>
         /// <returns>Modified basket with new products</returns>
-        private async Task RemoveProductsManually(int amountOfProducts, Catalog catalog)
+        private async Task RemoveProductsManually(decimal amountOfProducts, Catalog catalog)
         {
             var warehouse = await DB.WarehouseDB.FirstOrDefaultAsync(x => x.Id == catalog.WarehouseId);
             //if (productList.Count > 0)

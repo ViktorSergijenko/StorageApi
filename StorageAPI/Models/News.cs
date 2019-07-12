@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -12,7 +13,9 @@ namespace StorageAPI.Models
         {
             NewsComments = new List<NewsComment>();
         }
+        [Required]
         public string Title { get; set; }
+        [Required]
         public string ShortDescription { get; set; }
         public Guid WarehouseId { get; set; }
         public Warehouse Warehouse { get; set; }

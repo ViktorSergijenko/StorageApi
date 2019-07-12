@@ -123,6 +123,20 @@ namespace StorageAPI.Context
                 .HasForeignKey(x => x.NewsId)
                 ;
 
+            modelBuilder.Entity<CatalogName>()
+                .HasIndex(x => x.Name)
+                .IsUnique();
+
+            modelBuilder.Entity<User>()
+                .HasIndex(x => x.FullName)
+                .IsUnique();
+
+            modelBuilder.Entity<Catalog>()
+                .HasIndex(x => new { x.CatalogNameId, x.WarehouseId }).IsUnique();
+
+            modelBuilder.Entity<Warehouse>()
+                .HasIndex(x => new { x.Name, x.Address }).IsUnique();
+
             base.OnModelCreating(modelBuilder);
 
         }

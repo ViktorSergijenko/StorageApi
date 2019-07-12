@@ -34,7 +34,7 @@ namespace StorageAPI.Models
     public class IAddProductsToBasket
     {
         public Guid BasketId { get; set; }
-        public int ProductAmount { get; set; }
+        public decimal ProductAmount { get; set; }
         public Guid CatalogId { get; set; }
         public string Name { get; set; }
     }

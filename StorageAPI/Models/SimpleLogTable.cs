@@ -11,7 +11,7 @@ namespace StorageAPI.Models
         public string Action { get; set; }
         public string Where { get; set; }
         public string What { get; set; }
-        public int Amount { get; set; }
+        public decimal Amount { get; set; }
         public DateTime Date { get; set; }
         public Warehouse Warehouse { get; set; }
         public Guid WarehouseId { get; set; }

@@ -183,6 +183,11 @@ namespace StorageAPI.Services
 
         }
 
+        //public async Task<User> addUserToWarehouseAccess(UserWarehouse userWarehouses)
+        //{
+        //    DB.
+        //}
+
         #endregion Filtration method
     }
 }

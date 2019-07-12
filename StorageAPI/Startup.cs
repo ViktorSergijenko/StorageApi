@@ -45,7 +45,7 @@ namespace StorageAPI
             // Setting our connection string 
             // @"Server=tcp:warehouse-manager.database.windows.net,1433;Initial Catalog=warehouse-db;Persist Security Info=False;User ID=viktor18021;Password=Bravo1996;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
             services.AddDbContext<StorageContext>(
-                opt => opt.UseSqlServer(@"Server=(localdb)\mssqllocaldb;Database=WarehouseStorage;Trusted_Connection=True;"));
+                opt => opt.UseSqlServer(@"Server=tcp:warehouse-manager-dbserver.database.windows.net,1433;Initial Catalog=warehouse-db;Persist Security Info=False;User ID=viktor;Password=bRAVO1996;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout = 30;"));
             // Adding Identity
             
             services.AddIdentity<User, IdentityRole>(options =>
@@ -55,7 +55,7 @@ namespace StorageAPI
                     options.Password.RequireLowercase = false;
                     options.Password.RequireUppercase = false;
                     options.Password.RequireNonAlphanumeric = false;
-                    options.Password.RequiredLength = 6;
+                    options.Password.RequiredLength = 3;
                 })
                 .AddEntityFrameworkStores<StorageContext>();
             // Adding automapper

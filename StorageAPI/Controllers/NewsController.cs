@@ -92,7 +92,7 @@ namespace StorageAPI.Controllers
         public async Task<ActionResult> GetCommentsForNews(Guid newsId)
         {
             // Getting warehouse news by id
-            var comments = await DB.NewsCommentDB.Where(x => x.NewsId == newsId).ToListAsync();
+            var comments = await DB.NewsCommentDB.Where(x => x.NewsId == newsId).OrderByDescending(x => x.Date).ToListAsync();
             comments.OrderByDescending(x => x.Date).ToList();
             // Returning comments for news
             return Ok(comments);
@@ -112,8 +112,6 @@ namespace StorageAPI.Controllers
 
             // Getting warehouse news by id
             var news = await NewsService.toggleNewsFixedProblemFlag(newsDTO);
-            //await SimpleLogTableService.AddLog($"Atrisinātja problēmu, kas ir saistīta ar: {news.Title}", username);
-
             // Returning warehouse news
             return Ok(news);
         }

@@ -107,24 +107,48 @@ namespace StorageAPI.Controllers
         }
        
         [HttpGet("getUserList")]
+        [Authorize(AuthenticationSchemes = "Bearer")]
         public async Task<ActionResult> GetUserList()
         {
-            var userList = await userManager.Users.ToListAsync();
-            List<UserVM> userListWithRoles = new List<UserVM>();
-            foreach (var user in userList)
-            {
-                var userRoleName = await userManager.GetRolesAsync(user);
-                UserVM userWithRole = new UserVM {
-                    Id = user.Id,
-                    FullName = user.FullName,
-                    Email = user.Email,
-                    RoleName = userRoleName[0],
-                    HasAbilityToLoad = user.HasAbilityToLoad
-                    
-                };
-                userListWithRoles.Add(userWithRole);
+            var role = User.Claims.FirstOrDefault(x => x.Type == "Role").Value;
+
+                var userRole = await DB.Roles.FirstOrDefaultAsync(x => x.Name == role);
+                var firstLevel = await DB.Roles.FirstOrDefaultAsync(x => x.Name == "Level one");
+                var levelTwo = await DB.Roles.FirstOrDefaultAsync(x => x.Name == "Level two");
+                var levelThree = await DB.Roles.FirstOrDefaultAsync(x => x.Name == "Level three");
+
+            List<string> userIds = new List<string>();
+                if (role == "Level one")
+                {
+                userIds = await DB.UserRoles.Select(x => x.UserId).Distinct().ToListAsync();
+                }
+                if (role == "Level two")
+                {
+                userIds = await DB.UserRoles.Where(x => x.RoleId != firstLevel.Id && x.RoleId != levelTwo.Id).Select(x => x.UserId).Distinct().ToListAsync();
+
             }
-            return Ok(userListWithRoles);
+            if (role == "Level three")
+                {
+                userIds = await DB.UserRoles.Where(x => x.RoleId != firstLevel.Id && x.RoleId != levelTwo.Id && x.RoleId != levelThree.Id).Select(x => x.UserId).Distinct().ToListAsync();
+
+                 }
+            var userList = await DB.Users.Where(x => userIds.Any(y => y == x.Id)).ToListAsync();
+                List<UserVM> userListWithRoles = new List<UserVM>();
+                foreach (var user in userList)
+                {
+                    var userRoleName = await userManager.GetRolesAsync(user);
+                    UserVM userWithRole = new UserVM
+                    {
+                        Id = user.Id,
+                        FullName = user.FullName,
+                        Email = user.Email,
+                        RoleName = userRoleName[0],
+                        HasAbilityToLoad = user.HasAbilityToLoad
+
+                    };
+                    userListWithRoles.Add(userWithRole);
+                }
+                return Ok(userListWithRoles);
         }
 
         [HttpGet("getRoleList")]
@@ -197,14 +221,28 @@ namespace StorageAPI.Controllers
 
         [HttpPost("delete")]
         [Authorize(AuthenticationSchemes = "Bearer")]
-        public async Task<ActionResult> Delete(string id)
+        public async Task<ActionResult> Delete([FromBody]UserVM userVM)
         {
             var username = User.Claims.FirstOrDefault(x => x.Type == "FullName").Value;
 
-            User user = await userManager.FindByIdAsync(id);
+            User user = await userManager.FindByIdAsync(userVM.Id);
             if (user != null)
             {
-                IdentityResult result = await userManager.DeleteAsync(user);
+                var basket = await DB.Baskets.Include(x => x.Catalogs).FirstOrDefaultAsync(x => x.UserId == user.Id);
+                var role = await userManager.GetRolesAsync(user);
+                if (role[0] == "Level one")
+                {
+                    throw new Exception("You cant delete global admin");
+
+                }
+                if (basket.Catalogs.Count == 0)
+                {
+                    IdentityResult result = await userManager.DeleteAsync(user);
+                }
+                else
+                {
+                    throw new Exception("User basket is not empty");
+                }
             }
             await SimpleLogTableService.AddAdminLog($"Nodzesa darbnieku: {user.FullName}", username);
 
@@ -317,6 +355,8 @@ namespace StorageAPI.Controllers
                     user.FullName = model.FullName;
                     user.HasAbilityToLoad = model.HasAbilityToLoad;
                     var newRole = await roleManager.Roles.FirstOrDefaultAsync(x => x.Name == model.RoleName);
+                    var userRoles = await DB.UserRoles.Where(x => x.UserId == user.Id).ToListAsync();
+                    userRoles.ForEach(x => DB.UserRoles.Remove(x));
                     var result = await userManager.UpdateAsync(user);
                     if (result.Succeeded)
                     {

@@ -44,6 +44,7 @@ namespace StorageAPI.Controllers
         [Authorize(AuthenticationSchemes = "Bearer")]
         public async Task<ActionResult> AddProducts([FromBody] IAddProductsToBasket items)
         {
+            items.ProductAmount = Math.Abs(items.ProductAmount);
             var username = User.Claims.FirstOrDefault(x => x.Type == "FullName").Value;
 
             var situation = await BasketService.AddProductsToBasket(items);
@@ -63,7 +64,18 @@ namespace StorageAPI.Controllers
                     Type = catalogFromDB.Type
 
                 };
-                //await SimpleLogTableService.AddLog($"Pievienoja {items.ProductAmount} {items.Name} grozā no {catalogFromDB.Warehouse.Name} noliktava", username);
+                var log = new SimpleLogTable()
+                {
+                    Date = DateTime.Now,
+                    UserName = username,
+                    Action = "Noņemts",
+                    What = items.Name,
+                    Amount = items.ProductAmount,
+                    Manually = "",
+                    WarehouseId = catalogFromDB.WarehouseId.Value,
+                    Where = catalogFromDB.Warehouse.Name
+                };
+                await SimpleLogTableService.AddLog(log);
 
                 return Ok(catalogVM);
             }
@@ -76,6 +88,7 @@ namespace StorageAPI.Controllers
         [Authorize(AuthenticationSchemes = "Bearer")]
         public async Task<ActionResult> RemoveProductsFromBasket([FromBody] IAddProductsToBasket items)
         {
+            items.ProductAmount = Math.Abs(items.ProductAmount);
             var username = User.Claims.FirstOrDefault(x => x.Type == "FullName").Value;
 
             var situation = await BasketService.AddProductsToCatalogFromBasket(items);
@@ -94,7 +107,18 @@ namespace StorageAPI.Controllers
                     Type = catalogFromDB.Type
 
                 };
-                //await SimpleLogTableService.AddLog($"Noņema no groza {items.ProductAmount} {items.Name} produktus uz {catalogFromDB.Warehouse.Name} noliktavu", username);
+                var log = new SimpleLogTable()
+                {
+                    Date = DateTime.Now,
+                    UserName = username,
+                    Action = "Pievienots",
+                    What = items.Name,
+                    Amount = items.ProductAmount,
+                    Manually = "",
+                    WarehouseId = catalogFromDB.WarehouseId.Value,
+                    Where = catalogFromDB.Warehouse.Name
+                };
+                await SimpleLogTableService.AddLog(log);
 
                 return Ok(catalogVM);
             }

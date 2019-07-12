@@ -80,9 +80,14 @@ namespace StorageAPI.Controllers
         /// <returns></returns>
         [HttpDelete("{id}")]
         [Authorize(AuthenticationSchemes = "Bearer")]
-        public async Task<ActionResult> FilterWarehouses(Guid id)
+        public async Task<ActionResult> DeleteWarehouse(Guid id)
         {
             var username = User.Claims.FirstOrDefault(x => x.Type == "FullName").Value;
+            if (await DB.CatalogDB.AnyAsync(x => x.WarehouseId == id))
+            {
+                return BadRequest(new { message = "Noliktava vēl ir produkti." });
+
+            }
             // Calling method that will delete warehouse from DB
             await WarehouseService.DeleteWarehouse(id, username);
             // Returning filtered warehouse list

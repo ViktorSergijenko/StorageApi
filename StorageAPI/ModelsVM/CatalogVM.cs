@@ -24,7 +24,7 @@ namespace StorageAPI.ModelsVM
         /// <summary>
         /// Catalog current product amount
         /// </summary>
-        public int CurrentAmount { get; set; }
+        public decimal CurrentAmount { get; set; }
         /// <summary>
         /// Max stock of products that catalog can store
         /// </summary>

@@ -104,7 +104,17 @@ namespace StorageAPI.Services
                 news.Author = username;
                 news.CreatedDate = DateTime.Now;
                 // Adding new warehouse to DB
-                DB.NewsDB.Add(news);
+                await DB.NewsDB.AddAsync(news);
+                var firstComment = new NewsComment()
+                {
+                    Comment = news.ShortDescription,
+                    NewsId = news.Id,
+                    Date = DateTime.Now,
+                    Author = username
+
+
+                };
+                await DB.NewsCommentDB.AddAsync(firstComment);
                 DB.WarehouseDB.Update(warehouse);
 
 

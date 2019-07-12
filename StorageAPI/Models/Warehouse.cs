@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -23,19 +24,23 @@ namespace StorageAPI.Models
         /// <summary>
         /// Name of the warehouse
         /// </summary>
+        [Required]
         public string Name { get; set; }
         /// <summary>
         /// Address where warehouse is located
         /// </summary>
+        [Required]
         public string Address { get; set; }
         /// <summary>
         /// Flag that indicates does warehouse have some kind of problems
         /// </summary>
         public bool HasProblems { get; set; }
+        [Required]
         public bool HasMinCatalogs { get; set; }
         /// <summary>
         /// Location name
         /// </summary>
+        [Required]
         public string Location { get; set; }
         /// <summary>
         /// Variable that stores QR code as base64
@@ -48,6 +53,7 @@ namespace StorageAPI.Models
         /// <summary>
         /// Warehouse type flag, that indicates is it a main warehouse or not
         /// </summary>
+        [Required]
         public WarehouseType Type { get; set; }
         /// <summary>
         /// List of catalogs with products that are stored in warehouse
