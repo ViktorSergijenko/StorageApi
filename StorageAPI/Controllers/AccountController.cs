@@ -111,6 +111,9 @@ namespace StorageAPI.Controllers
         public async Task<ActionResult> GetUserList()
         {
             var role = User.Claims.FirstOrDefault(x => x.Type == "Role").Value;
+            var userIdThatWantToRecieveUsers = User.Claims.FirstOrDefault(x => x.Type == "UserID").Value;
+
+            var userThatWantToRecieveUsers = await DB.Users.FirstOrDefaultAsync(x => x.Id == userIdThatWantToRecieveUsers);
 
                 var userRole = await DB.Roles.FirstOrDefaultAsync(x => x.Name == role);
                 var firstLevel = await DB.Roles.FirstOrDefaultAsync(x => x.Name == "Level one");
@@ -120,18 +123,49 @@ namespace StorageAPI.Controllers
             List<string> userIds = new List<string>();
                 if (role == "Level one")
                 {
-                userIds = await DB.UserRoles.Select(x => x.UserId).Distinct().ToListAsync();
+                userIds =  await DB.Users.Select(x => x.Id).ToListAsync();
                 }
                 if (role == "Level two")
                 {
-                userIds = await DB.UserRoles.Where(x => x.RoleId != firstLevel.Id && x.RoleId != levelTwo.Id).Select(x => x.UserId).Distinct().ToListAsync();
+                    userIds = await DB.Users
+                    .Where(x => x.ReportsTo == userThatWantToRecieveUsers.Id || x.Id == userThatWantToRecieveUsers.ReportsTo)
+                    .Select(x => x.Id)
+                    .Distinct()
+                    .ToListAsync()
+                    ;
+
+                var employeesOfEmployees = await DB.Users.Where(x => userIds.Any(y => y == x.ReportsTo)).Select(x => x.Id).ToListAsync();
+                    var levelTwoUserIds = await DB.UserRoles
+                    .Where(x => x.RoleId == levelTwo.Id && x.UserId != userIdThatWantToRecieveUsers)
+                    .Select(x => x.UserId)
+                    .ToListAsync()
+                    ;
+
+                    levelTwoUserIds.ForEach(x => userIds.Add(x));
+                employeesOfEmployees.ForEach(x => userIds.Add(x));
+                }
+            if (role == "Level three")
+            {
+                // Getting all users that serves to this employee and his boss, since he is level three, he should definitely have a boss
+                userIds = await DB.Users
+                    .Where(x => x.ReportsTo == userThatWantToRecieveUsers.Id || x.Id == userThatWantToRecieveUsers.ReportsTo)
+                    .Select(x => x.Id)
+                    .Distinct().
+                    ToListAsync()
+                    ;
+
+                // Also we get users that are equal by level role
+                var levelThreeUsers = await DB.UserRoles
+                    .Where(x => x.RoleId == levelThree.Id)
+                    .Select(x => x.UserId)
+                    .Distinct()
+                    .ToListAsync()
+                    ;
+
+                levelThreeUsers.ForEach(x => userIds.Add(x));
+
 
             }
-            if (role == "Level three")
-                {
-                userIds = await DB.UserRoles.Where(x => x.RoleId != firstLevel.Id && x.RoleId != levelTwo.Id && x.RoleId != levelThree.Id).Select(x => x.UserId).Distinct().ToListAsync();
-
-                 }
             var userList = await DB.Users.Where(x => userIds.Any(y => y == x.Id)).ToListAsync();
                 List<UserVM> userListWithRoles = new List<UserVM>();
                 foreach (var user in userList)
@@ -143,31 +177,138 @@ namespace StorageAPI.Controllers
                         FullName = user.FullName,
                         Email = user.Email,
                         RoleName = userRoleName[0],
-                        HasAbilityToLoad = user.HasAbilityToLoad
-
+                        HasAbilityToLoad = user.HasAbilityToLoad,
+                        ReportsTo = user.ReportsTo
                     };
                     userListWithRoles.Add(userWithRole);
                 }
                 return Ok(userListWithRoles);
         }
 
+        [HttpPost("get-employees-that-dont-have-access")]
+        [Authorize(AuthenticationSchemes = "Bearer")]
+        public async Task<ActionResult> GetMyEmployeesForWarehouse(UserWarehouse userWarehouse)
+        {
+            var role = User.Claims.FirstOrDefault(x => x.Type == "Role").Value;
+            var idOfAnUser = User.Claims.FirstOrDefault(x => x.Type == "UserID").Value;
+
+            List<UserVM> usersVM = new List<UserVM>();
+
+            if (role == "Level one")
+            {
+                var usersForLoop = await DB.Users.Where(x => x.Id != userWarehouse.UserId).ToListAsync();
+
+                foreach (var user in usersForLoop)
+                {
+                    if (!await DB.UserWarehouseDB.AnyAsync(x => x.UserId == user.Id && x.WarehouseId == userWarehouse.WarehouseId))
+                    {
+                        var userRoleName = await userManager.GetRolesAsync(user);
+                        UserVM userWithRole = new UserVM
+                        {
+                            Id = user.Id,
+                            FullName = user.FullName,
+                            Email = user.Email,
+                            RoleName = userRoleName[0],
+                            HasAbilityToLoad = user.HasAbilityToLoad,
+                            ReportsTo = user.ReportsTo
+                        };
+                        usersVM.Add(userWithRole);
+                    }
+                }
+            }
+
+            if (role == "Level two")
+            {
+                var allEmployees = new List<User>();
+                var levelThreeEmployees = await DB.Users.Where(x => x.ReportsTo == userWarehouse.UserId).ToListAsync();
+                allEmployees.AddRange(levelThreeEmployees);
+                var employeesFirstLoop = await DB.Users.Where(x => x.ReportsTo == userWarehouse.UserId).ToListAsync();
+                foreach (var employee in levelThreeEmployees)
+                {
+                    if (await DB.Users.AnyAsync(x => x.ReportsTo == employee.Id))
+                    {
+                        allEmployees.AddRange(await DB.Users.Where(x => x.ReportsTo == employee.Id).ToListAsync());
+                    }
+                }
+                var listOnlyWithAllowedUsers = new List<User>();
+                foreach (var user in allEmployees)
+                {
+                    if (!await DB.UserWarehouseDB.AnyAsync(x => x.UserId == user.Id && x.WarehouseId == userWarehouse.WarehouseId))
+                    {
+                        listOnlyWithAllowedUsers.Add(user);
+                        var userRoleName = await userManager.GetRolesAsync(user);
+                        UserVM userWithRole = new UserVM
+                        {
+                            Id = user.Id,
+                            FullName = user.FullName,
+                            Email = user.Email,
+                            RoleName = userRoleName[0],
+                            HasAbilityToLoad = user.HasAbilityToLoad,
+                            ReportsTo = user.ReportsTo
+                        };
+                        usersVM.Add(userWithRole);
+                    }
+                }
+
+            }
+
+            if (role == "Level three")
+            {
+                var levelFourEmployees = await DB.Users.Where(x => x.ReportsTo == userWarehouse.UserId).ToListAsync();
+                var listOnlyWithAllowedUsers = new List<User>();
+                listOnlyWithAllowedUsers.AddRange(levelFourEmployees);
+                foreach (var user in levelFourEmployees)
+                {
+                    if (!await DB.UserWarehouseDB.AnyAsync(x => x.UserId == user.Id && x.WarehouseId == userWarehouse.WarehouseId))
+                    {
+                        var userRoleName = await userManager.GetRolesAsync(user);
+                        UserVM userWithRole = new UserVM
+                        {
+                            Id = user.Id,
+                            FullName = user.FullName,
+                            Email = user.Email,
+                            RoleName = userRoleName[0],
+                            HasAbilityToLoad = user.HasAbilityToLoad,
+                            ReportsTo = user.ReportsTo
+                        };
+                        usersVM.Add(userWithRole);
+                    }
+                }
+
+            }
+            return Ok(usersVM);
+        }
+
         [HttpGet("getRoleList")]
         [Authorize(AuthenticationSchemes = "Bearer")]
         public async Task<ActionResult> GetRoleList()
         {
-            List<string> roles = new List<string>();
             var role = User.Claims.FirstOrDefault(x => x.Type == "Role").Value;
+            var userIdThatWantToRecieveUsers = User.Claims.FirstOrDefault(x => x.Type == "UserID").Value;
+            var userThatWantToRecieveRoles = await DB.Users.Include(x => x.Employees).FirstOrDefaultAsync(x => x.Id == userIdThatWantToRecieveUsers);
+            List<string> roles = new List<string>();
             if (role == "Level one")
             {
-                roles = await roleManager.Roles.Where(x => x.Name != "Level one").Select(x => x.Name).ToListAsync();
+                    roles = await roleManager.Roles.Where(x => x.Name == "Level two").Select(x => x.Name).ToListAsync();
+                //if (userThatWantToRecieveRoles.Employees.Any())
+                //{
+                //    if ()
+                //    {
+
+                //    }
+                //}
+                //else
+                //{
+                //}
             }
             if (role == "Level two")
             {
-                roles = await roleManager.Roles.Where(x => x.Name !="Level one" && x.Name != "Level two").Select(x => x.Name).ToListAsync();
+                //roles = await roleManager.Roles.Where(x => x.Name !="Level one" && x.Name != "Level two").Select(x => x.Name).ToListAsync();
+                roles = await roleManager.Roles.Where(x => x.Name == "Level three").Select(x => x.Name).ToListAsync();
             }
             if (role == "Level three")
             {
-                roles = await roleManager.Roles.Where(x => x.Name != "Level one" && x.Name != "Level two" && x.Name != "Level three").Select(x => x.Name).ToListAsync();
+                roles = await roleManager.Roles.Where(x => x.Name == "Level four").Select(x => x.Name).ToListAsync();
             }
             return Ok(roles);
         }
@@ -186,10 +327,11 @@ namespace StorageAPI.Controllers
         public async Task<ActionResult> RegisterUser([FromBody] RegisterVM newUser)
         {
             var whoCreated = User.Claims.FirstOrDefault(x => x.Type == "FullName").Value;
+            var creator = await DB.Users.FirstOrDefaultAsync(x => x.FullName == whoCreated);
 
             if (ModelState.IsValid)
             {
-                User user = new User { Email = newUser.Email, FullName = newUser.FullName, UserName = newUser.Email, WhoCreated = whoCreated };
+                User user = new User { Email = newUser.Email, FullName = newUser.FullName, UserName = newUser.Email, WhoCreated = whoCreated, ReportsTo = creator.Id };
                 if (newUser.RoleName != "Level four")
                 {
                     user.HasAbilityToLoad = true;

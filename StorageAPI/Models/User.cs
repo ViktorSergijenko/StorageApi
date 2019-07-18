@@ -12,6 +12,7 @@ namespace StorageAPI.Models
         public User()
         {
             UserWarehouse = new List<UserWarehouse>();
+            Employees = new List<User>();
         }
         /// <summary>
         /// User full name
@@ -23,6 +24,15 @@ namespace StorageAPI.Models
         public string WhoCreated { get; set; }
         public List<UserWarehouse> UserWarehouse { get; set; }
         public bool HasAbilityToLoad { get; set; }
+        public string ReportsTo { get; set; }
+        /// <summary>
+        /// Boss to that this employee is attached to
+        /// </summary>
+        public User Boss { get; set; }
+        /// <summary>
+        /// List of employees to that this employee is marked as a boss
+        /// </summary>
+        public List<User> Employees { get; set; }
 
 
     }
@@ -45,11 +55,13 @@ namespace StorageAPI.Models
         public string RoleName { get; set; }
         public string FullName { get; set; }
         public bool HasAbilityToLoad { get; set; }
-
+        public string ReportsTo { get; set; }
+        public bool DoesUserHaveAbilityToSeeProductAmount { get; set; }
     }
 
     public class UserWithBasketId
     {
+        public string UserId { get; set; }
         public string FullName { get; set; }
         public string Email { get; set; }
         public Guid BasketId { get; set; }

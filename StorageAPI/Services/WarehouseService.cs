@@ -9,7 +9,7 @@ using StorageAPI.Models;
 using ZXing.QrCode;
 using System.IO;
 using AutoMapper;
-
+using Microsoft.AspNetCore.Identity;
 
 namespace StorageAPI.Services
 {
@@ -17,15 +17,15 @@ namespace StorageAPI.Services
     {
         protected StorageContext DB { get; private set; }
         protected SimpleLogTableServcie SimpleLogTableService { get; private set; }
+        private readonly UserManager<User> userManager;
 
 
 
-        public WarehouseService(IServiceProvider service)
+        public WarehouseService(IServiceProvider service, UserManager<User> userManager)
         {
+            this.userManager = userManager;
             DB = service.GetService<StorageContext>();
             SimpleLogTableService = service.GetRequiredService<SimpleLogTableServcie>();
-
-
         }
 
         #region BaseCrud
@@ -60,9 +60,46 @@ namespace StorageAPI.Services
             // If warehouse does not have id, that means that it's a new entity, and we need an add functionality
             if (warehouse.Id == null || warehouse.Id.Equals(Guid.Empty))
             {
+                var adminRoleId = await DB.Roles.FirstOrDefaultAsync(x => x.Name == "Level one");
+                var adminId = await DB.UserRoles.FirstOrDefaultAsync(x => x.RoleId == adminRoleId.Id);
+
                 // Adding new warehouse to DB
                await DB.WarehouseDB.AddAsync(warehouse);
-               await SimpleLogTableService.AddAdminLog($"Izveidoja noliktavu: {warehouse.Name}", username);
+                var creator = await DB.Users.FirstOrDefaultAsync(x => x.FullName == username);
+                if (creator.Id == adminId.UserId)
+                {
+                    UserWarehouse userWarehouse = new UserWarehouse
+                    {
+                        WarehouseId = warehouse.Id,
+                        UserId = creator.Id,
+                        DoesUserHaveAbilityToSeeProductAmount = true
+                    };
+
+                    await DB.UserWarehouseDB.AddAsync(userWarehouse);
+
+                }
+                else
+                {
+                    UserWarehouse userWarehouse = new UserWarehouse
+                    {
+                        WarehouseId = warehouse.Id,
+                        UserId = creator.Id,
+                        DoesUserHaveAbilityToSeeProductAmount = true
+                    };
+
+                    UserWarehouse userWarehouseForAdmin = new UserWarehouse
+                    {
+                        WarehouseId = warehouse.Id,
+                        UserId = adminId.UserId,
+                        DoesUserHaveAbilityToSeeProductAmount = true
+                    };
+                    await DB.UserWarehouseDB.AddAsync(userWarehouse);
+                    await DB.UserWarehouseDB.AddAsync(userWarehouseForAdmin);
+
+
+                }
+
+                await SimpleLogTableService.AddAdminLog($"Izveidoja noliktavu: {warehouse.Name}", username);
                 // Saving changes in DB
                 await DB.SaveChangesAsync();
                 // Generating QR code for warehouse
@@ -183,11 +220,142 @@ namespace StorageAPI.Services
 
         }
 
-        //public async Task<User> addUserToWarehouseAccess(UserWarehouse userWarehouses)
-        //{
-        //    DB.
-        //}
+        public async Task<UserVM> AddUserToWarehouse(UserWarehouse userWarehouse)
+        {
+            await DB.UserWarehouseDB.AddAsync(userWarehouse);
+            await DB.SaveChangesAsync();
+            var addedUser = await DB.Users.FirstOrDefaultAsync(x => x.Id == userWarehouse.UserId);
+            var userRoleName = await userManager.GetRolesAsync(addedUser);
+            UserVM userWithRole = new UserVM
+            {
+                Id = addedUser.Id,
+                FullName = addedUser.FullName,
+                Email = addedUser.Email,
+                RoleName = userRoleName[0],
+                HasAbilityToLoad = addedUser.HasAbilityToLoad,
+                ReportsTo = addedUser.ReportsTo
+            };
+
+            return userWithRole;
+        }
+
+        public async Task<UserVM> RemoveUserToWarehouse(UserWarehouse userWarehouse)
+        {
+            DB.UserWarehouseDB.Remove(userWarehouse);
+            await DB.SaveChangesAsync();
+            var removedUser = await DB.Users.FirstOrDefaultAsync(x => x.Id == userWarehouse.UserId);
+            var userRoleName = await userManager.GetRolesAsync(removedUser);
+            UserVM userWithRole = new UserVM
+            {
+                Id = removedUser.Id,
+                FullName = removedUser.FullName,
+                Email = removedUser.Email,
+                RoleName = userRoleName[0],
+                HasAbilityToLoad = removedUser.HasAbilityToLoad,
+                ReportsTo = removedUser.ReportsTo
+            };
+
+            return userWithRole;
+        }
+
+        public async Task<List<UserVM>> GetUsersThatAllowToUseWarehouse(UserWarehouse userWarehouse, string role)
+        {
+            List<UserVM> usersVM = new List<UserVM>();
+
+            #region level one
+            if (role == "Level one")
+            {
+                var usersForLoop = await DB.Users.Where(x => x.Id != userWarehouse.UserId).ToListAsync();
+
+                foreach (var user in usersForLoop)
+                {
+                    if (await DB.UserWarehouseDB.AnyAsync(x => x.UserId == user.Id && x.WarehouseId == userWarehouse.WarehouseId))
+                    {
+                        var userRoleName = await userManager.GetRolesAsync(user);
+                        var abilityToSeeAmount = await DB.UserWarehouseDB.Where(x => x.UserId == user.Id && x.WarehouseId == userWarehouse.WarehouseId).Select(x => x.DoesUserHaveAbilityToSeeProductAmount).ToListAsync();
+                        UserVM userWithRole = new UserVM
+                        {
+                            Id = user.Id,
+                            FullName = user.FullName,
+                            Email = user.Email,
+                            RoleName = userRoleName[0],
+                            HasAbilityToLoad = user.HasAbilityToLoad,
+                            ReportsTo = user.ReportsTo,
+                            DoesUserHaveAbilityToSeeProductAmount = abilityToSeeAmount[0]
+                        };
+                        usersVM.Add(userWithRole);
+                    } 
+                }
+            }
+            #endregion level one
+
+            if (role == "Level two")
+            {
+                var allEmployees = new List<User>();
+                var levelThreeEmployees = await DB.Users.Where(x => x.ReportsTo == userWarehouse.UserId).ToListAsync();
+                allEmployees.AddRange(levelThreeEmployees);
+                var employeesFirstLoop = await DB.Users.Where(x => x.ReportsTo == userWarehouse.UserId).ToListAsync();
+                foreach (var employee in levelThreeEmployees)
+                {
+                    if (await DB.Users.AnyAsync(x => x.ReportsTo == employee.Id))
+                    {
+                        allEmployees.AddRange(await DB.Users.Where(x => x.ReportsTo == employee.Id).ToListAsync());
+                    }
+                }
+                var listOnlyWithAllowedUsers = new List<User>();
+                foreach (var user in allEmployees)
+                {
+                    if (await DB.UserWarehouseDB.AnyAsync(x => x.UserId == user.Id && x.WarehouseId == userWarehouse.WarehouseId))
+                    {
+                        listOnlyWithAllowedUsers.Add(user);
+                        var userRoleName = await userManager.GetRolesAsync(user);
+                        var abilityToSeeAmount = await DB.UserWarehouseDB.Where(x => x.UserId == user.Id && x.WarehouseId == userWarehouse.WarehouseId).Select(x => x.DoesUserHaveAbilityToSeeProductAmount).ToListAsync();
+                        UserVM userWithRole = new UserVM
+                        {
+                            Id = user.Id,
+                            FullName = user.FullName,
+                            Email = user.Email,
+                            RoleName = userRoleName[0],
+                            HasAbilityToLoad = user.HasAbilityToLoad,
+                            ReportsTo = user.ReportsTo,
+                            DoesUserHaveAbilityToSeeProductAmount = abilityToSeeAmount[0]
+                        };
+                        usersVM.Add(userWithRole);
+                    }
+                }
+
+            }
+            if (role == "Level three")
+            {
+                var levelFourEmployees = await DB.Users.Where(x => x.ReportsTo == userWarehouse.UserId).ToListAsync();
+                var listOnlyWithAllowedUsers = new List<User>();
+                listOnlyWithAllowedUsers.AddRange(levelFourEmployees);
+                foreach (var user in levelFourEmployees)
+                {
+                    if (await DB.UserWarehouseDB.AnyAsync(x => x.UserId == user.Id && x.WarehouseId == userWarehouse.WarehouseId))
+                    {
+                        var userRoleName = await userManager.GetRolesAsync(user);
+                        var abilityToSeeAmount = await DB.UserWarehouseDB.Where(x => x.UserId == user.Id && x.WarehouseId == userWarehouse.WarehouseId).Select(x => x.DoesUserHaveAbilityToSeeProductAmount).ToListAsync();
+                        UserVM userWithRole = new UserVM
+                        {
+                            Id = user.Id,
+                            FullName = user.FullName,
+                            Email = user.Email,
+                            RoleName = userRoleName[0],
+                            HasAbilityToLoad = user.HasAbilityToLoad,
+                            ReportsTo = user.ReportsTo,
+                            DoesUserHaveAbilityToSeeProductAmount = abilityToSeeAmount[0]
+                        };
+                        usersVM.Add(userWithRole);
+                    }
+                }
+
+            }
+            return usersVM;
+        }
+
+        }
 
         #endregion Filtration method
     }
-}
+

@@ -38,9 +38,13 @@ namespace StorageAPI.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet]
+        [Authorize(AuthenticationSchemes = "Bearer")]
         public async Task<ActionResult<List<Warehouse>>> GetAllWarehouses()
         {
-            return await DB.WarehouseDB.Include(x => x.News).ToListAsync();
+            var userID = User.Claims.FirstOrDefault(x => x.Type == "UserID").Value;
+            var warehousesIds = await DB.UserWarehouseDB.Where(x => x.UserId == userID).Select(x => x.WarehouseId).ToListAsync();
+            var warehouseList = await DB.WarehouseDB.Where(x => warehousesIds.Any(y => y == x.Id)).ToListAsync();
+            return warehouseList;
         }
 
         /// <summary>
@@ -110,7 +114,48 @@ namespace StorageAPI.Controllers
             return Ok(newWarehouse);
         }
 
+        [HttpPost("add-user-to-warehouse")]
+        [Authorize(AuthenticationSchemes = "Bearer")]
+        public async Task<ActionResult> AddUserToWarehouse([FromBody] UserWarehouse userWarehouse)
+        {
+            return Ok(await WarehouseService.AddUserToWarehouse(userWarehouse));
+        }
 
+        [HttpPost("remove-from-warehouse")]
+        [Authorize(AuthenticationSchemes = "Bearer")]
+        public async Task<ActionResult> RemoveUserToWarehouse([FromBody] UserWarehouse userWarehouse)
+        {
+           var removedUser = await WarehouseService.RemoveUserToWarehouse(userWarehouse);
+            return Ok(removedUser);
+        }
 
+        [HttpPost("warehouse-employees")]
+        [Authorize(AuthenticationSchemes = "Bearer")]
+        public async Task<ActionResult> GetUsersThatAllowToUseWarehouse([FromBody] UserWarehouse userWarehouse)
+        {
+            var role = User.Claims.FirstOrDefault(x => x.Type == "Role").Value;
+            var users = await WarehouseService.GetUsersThatAllowToUseWarehouse(userWarehouse, role);
+            return Ok(users);
+        }
+
+        [HttpPost("toggle-amount")]
+        [Authorize(AuthenticationSchemes = "Bearer")]
+        public async Task<ActionResult> ToggleSeeAmountInWarehouse([FromBody] UserWarehouse userWarehouse)
+        {
+            var role = User.Claims.FirstOrDefault(x => x.Type == "Role").Value;
+            var neededUserWarehouse = await DB.UserWarehouseDB.FirstOrDefaultAsync(x => x.WarehouseId == userWarehouse.WarehouseId && x.UserId == userWarehouse.UserId);
+            neededUserWarehouse.DoesUserHaveAbilityToSeeProductAmount = !neededUserWarehouse.DoesUserHaveAbilityToSeeProductAmount;
+            DB.UserWarehouseDB.Update(neededUserWarehouse);
+            await DB.SaveChangesAsync();
+            return Ok();
+        }
+
+        [HttpPost("user-warehouse")]
+        [Authorize(AuthenticationSchemes = "Bearer")]
+        public async Task<ActionResult> GetUserWarehouse([FromBody] UserWarehouse userWarehouse)
+        {
+            var neededUserWarehouse = await DB.UserWarehouseDB.FirstOrDefaultAsync(x => x.WarehouseId == userWarehouse.WarehouseId && x.UserId == userWarehouse.UserId);
+            return Ok(neededUserWarehouse);
+        }
     }
 }

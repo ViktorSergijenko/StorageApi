@@ -24,7 +24,7 @@ namespace StorageAPI.Context
                  .HasMany(x => x.Catalogs)
                  .WithOne(x => x.Warehouse)
                  .HasForeignKey(x => x.WarehouseId)
-                 .OnDelete(DeleteBehavior.Cascade)
+                 .OnDelete(DeleteBehavior.Restrict)
                  ;
             #endregion Warehouse model builder
 
@@ -42,6 +42,17 @@ namespace StorageAPI.Context
                 .HasForeignKey(x => x.BasketId)
                 ;
             #endregion Catalog model builder
+
+            modelBuilder.Entity<User>()
+              .HasMany(x => x.Employees)
+               .WithOne(x => x.Boss)
+               .HasForeignKey(x => x.ReportsTo) // Тут я не делал IsRequired потому что у Босса нету человека которому он подчиняется это та самая рекурсивная связь
+               ;
+            modelBuilder.Entity<User>()
+                .HasOne(x => x.Boss)
+                .WithMany()
+                .HasForeignKey(x => x.ReportsTo)
+                ;
 
             #region Product model builder
             modelBuilder.Entity<Product>()
@@ -115,6 +126,13 @@ namespace StorageAPI.Context
                 .HasOne(x => x.Warehouse)
                 .WithMany(x => x.WarehouseLogs)
                 .HasForeignKey(x => x.WarehouseId)
+                .OnDelete(DeleteBehavior.Restrict)
+                ;
+            modelBuilder.Entity<Warehouse>()
+                .HasMany(x => x.WarehouseLogs)
+                .WithOne(x => x.Warehouse)
+                .HasForeignKey(x => x.WarehouseId)
+                .OnDelete(DeleteBehavior.Restrict)
                 ;
 
             modelBuilder.Entity<NewsComment>()
