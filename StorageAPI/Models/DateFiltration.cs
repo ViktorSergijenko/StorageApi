@@ -7,10 +7,9 @@ namespace StorageAPI.Models
 {
     public class DateFiltration
     {
-        public bool LastThirtyMinutes { get; set; }
         public bool LastHour { get; set; }
-        public bool LastSixHours { get; set; }
         public bool LastWeek { get; set; }
+        public bool LastDay { get; set; }
         public bool LastMonth { get; set; }
         public DateTime? TimeFrom { get; set; }
         public DateTime? TimeTill { get; set; }

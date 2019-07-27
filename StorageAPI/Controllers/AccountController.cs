@@ -127,44 +127,51 @@ namespace StorageAPI.Controllers
                 }
                 if (role == "Level two")
                 {
+                // Getting users that serves to him, level three users
                     userIds = await DB.Users
-                    .Where(x => x.ReportsTo == userThatWantToRecieveUsers.Id || x.Id == userThatWantToRecieveUsers.ReportsTo)
+                    .Where(x => x.ReportsTo == userThatWantToRecieveUsers.Id)
                     .Select(x => x.Id)
                     .Distinct()
                     .ToListAsync()
                     ;
-
+                // Getting all level four users that serves to level three
                 var employeesOfEmployees = await DB.Users.Where(x => userIds.Any(y => y == x.ReportsTo)).Select(x => x.Id).ToListAsync();
-                    var levelTwoUserIds = await DB.UserRoles
-                    .Where(x => x.RoleId == levelTwo.Id && x.UserId != userIdThatWantToRecieveUsers)
-                    .Select(x => x.UserId)
-                    .ToListAsync()
-                    ;
 
-                    levelTwoUserIds.ForEach(x => userIds.Add(x));
                 employeesOfEmployees.ForEach(x => userIds.Add(x));
                 }
             if (role == "Level three")
             {
-                // Getting all users that serves to this employee and his boss, since he is level three, he should definitely have a boss
+                // Getting all users that serves to this employee
                 userIds = await DB.Users
-                    .Where(x => x.ReportsTo == userThatWantToRecieveUsers.Id || x.Id == userThatWantToRecieveUsers.ReportsTo)
+                    .Where(x => x.ReportsTo == userThatWantToRecieveUsers.Id)
                     .Select(x => x.Id)
                     .Distinct().
                     ToListAsync()
                     ;
 
-                // Also we get users that are equal by level role
-                var levelThreeUsers = await DB.UserRoles
-                    .Where(x => x.RoleId == levelThree.Id)
-                    .Select(x => x.UserId)
-                    .Distinct()
-                    .ToListAsync()
+                // Getting his boss(level two who created him)
+                var bossId = await DB.Users
+                    .Where(x => x.Id == userThatWantToRecieveUsers.ReportsTo)
+                    .Select(x => x.Id)
+                    .FirstOrDefaultAsync()
                     ;
 
-                levelThreeUsers.ForEach(x => userIds.Add(x));
+                // Getting all level three users that his boss has created
+               var thisBossAllLevelThreeEmployeesId = await DB.Users
+                   .Where(x => x.ReportsTo == bossId)
+                   .Select(x => x.Id)
+                   .Distinct().
+                   ToListAsync()
+                   ;
 
-
+                // Getting all those level three user employees too
+                var employeesOfEmployees = await DB.Users.Where(x => thisBossAllLevelThreeEmployeesId.Any(y => y == x.ReportsTo)).Select(x => x.Id).ToListAsync();
+                // Adding boss to the list
+                userIds.Add(bossId);
+                // Adding level three users
+                thisBossAllLevelThreeEmployeesId.ForEach(x => userIds.Add(x));
+                // Adding level four users that serves to level three
+                employeesOfEmployees.ForEach(x => userIds.Add(x));
             }
             var userList = await DB.Users.Where(x => userIds.Any(y => y == x.Id)).ToListAsync();
                 List<UserVM> userListWithRoles = new List<UserVM>();

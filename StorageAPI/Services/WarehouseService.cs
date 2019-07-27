@@ -72,7 +72,8 @@ namespace StorageAPI.Services
                     {
                         WarehouseId = warehouse.Id,
                         UserId = creator.Id,
-                        DoesUserHaveAbilityToSeeProductAmount = true
+                        DoesUserHaveAbilityToSeeProductAmount = true,
+                        WarehousePositionInTable = await DB.UserWarehouseDB.CountAsync(x => x.UserId == creator.Id) + 1
                     };
 
                     await DB.UserWarehouseDB.AddAsync(userWarehouse);
@@ -84,14 +85,16 @@ namespace StorageAPI.Services
                     {
                         WarehouseId = warehouse.Id,
                         UserId = creator.Id,
-                        DoesUserHaveAbilityToSeeProductAmount = true
+                        DoesUserHaveAbilityToSeeProductAmount = true,
+                        WarehousePositionInTable = await DB.UserWarehouseDB.CountAsync(x => x.UserId == creator.Id) + 1
                     };
 
                     UserWarehouse userWarehouseForAdmin = new UserWarehouse
                     {
                         WarehouseId = warehouse.Id,
                         UserId = adminId.UserId,
-                        DoesUserHaveAbilityToSeeProductAmount = true
+                        DoesUserHaveAbilityToSeeProductAmount = true,
+                        WarehousePositionInTable = await DB.UserWarehouseDB.CountAsync(x => x.UserId == adminId.UserId) + 1
                     };
                     await DB.UserWarehouseDB.AddAsync(userWarehouse);
                     await DB.UserWarehouseDB.AddAsync(userWarehouseForAdmin);
@@ -222,6 +225,9 @@ namespace StorageAPI.Services
 
         public async Task<UserVM> AddUserToWarehouse(UserWarehouse userWarehouse)
         {
+            var positionForNewUserWarehouse = await DB.UserWarehouseDB.CountAsync(x => x.UserId == userWarehouse.UserId);
+            userWarehouse.WarehousePositionInTable = ++positionForNewUserWarehouse;
+           
             await DB.UserWarehouseDB.AddAsync(userWarehouse);
             await DB.SaveChangesAsync();
             var addedUser = await DB.Users.FirstOrDefaultAsync(x => x.Id == userWarehouse.UserId);
@@ -236,11 +242,50 @@ namespace StorageAPI.Services
                 ReportsTo = addedUser.ReportsTo
             };
 
+
             return userWithRole;
         }
-
+        public async Task ChangeWarehousePosition(UserWarehouse userWarehouse)
+        {
+            var userWarehouseList = await DB.UserWarehouseDB
+                          .AsNoTracking()
+                          .OrderBy(x => x.WarehousePositionInTable)
+                          .Where(x => x.UserId == userWarehouse.UserId)
+                          .ToListAsync();
+            if (userWarehouse.WarehousePositionInTable > userWarehouseList.Count || userWarehouse.WarehousePositionInTable < 1)
+            {
+                throw new Exception();
+            }
+            var warehouseOldPosition = await DB.UserWarehouseDB
+               .Where(x => x.WarehouseId == userWarehouse.WarehouseId && x.UserId == userWarehouse.UserId)
+               .Select(x => x.WarehousePositionInTable)
+               .FirstOrDefaultAsync();
+            var warehouseWhithTahtWeSwappingPlaces = userWarehouseList.FirstOrDefault(x => x.WarehousePositionInTable == userWarehouse.WarehousePositionInTable);
+            warehouseWhithTahtWeSwappingPlaces.WarehousePositionInTable = warehouseOldPosition;
+            DB.UserWarehouseDB.Update(warehouseWhithTahtWeSwappingPlaces);
+            DB.UserWarehouseDB.Update(userWarehouse);
+            await DB.SaveChangesAsync();
+        }
         public async Task<UserVM> RemoveUserToWarehouse(UserWarehouse userWarehouse)
         {
+            var warehousePosition = await DB.UserWarehouseDB
+                .Where(x => x.WarehouseId == userWarehouse.WarehouseId && x.UserId == userWarehouse.UserId)
+                .Select(x => x.WarehousePositionInTable)
+                .FirstOrDefaultAsync();
+
+            var userWarehouseList = await DB.UserWarehouseDB
+                          .AsNoTracking()
+                          .OrderBy(x => x.WarehousePositionInTable)
+                          .Where(x => x.UserId == userWarehouse.UserId)
+                          .ToListAsync();
+            foreach (var warehouse in userWarehouseList)
+            {
+                if (warehouse.WarehousePositionInTable > warehousePosition)
+                {
+                    warehouse.WarehousePositionInTable = warehouse.WarehousePositionInTable - 1;
+                    DB.UserWarehouseDB.Update(warehouse);
+                }
+            }
             DB.UserWarehouseDB.Remove(userWarehouse);
             await DB.SaveChangesAsync();
             var removedUser = await DB.Users.FirstOrDefaultAsync(x => x.Id == userWarehouse.UserId);

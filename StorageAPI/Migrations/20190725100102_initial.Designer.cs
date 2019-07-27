@@ -10,14 +10,14 @@ using StorageAPI.Context;
 namespace StorageAPI.Migrations
 {
     [DbContext(typeof(StorageContext))]
-    [Migration("20190713131249_Warehouse-restrict-delete")]
-    partial class Warehouserestrictdelete
+    [Migration("20190725100102_initial")]
+    partial class initial
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "2.2.1-servicing-10028")
+                .HasAnnotation("ProductVersion", "2.2.6-servicing-10079")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128)
                 .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
 
@@ -358,9 +358,13 @@ namespace StorageAPI.Migrations
 
                     b.Property<bool>("PhoneNumberConfirmed");
 
+                    b.Property<string>("ReportsTo");
+
                     b.Property<string>("SecurityStamp");
 
                     b.Property<bool>("TwoFactorEnabled");
+
+                    b.Property<string>("UserId");
 
                     b.Property<string>("UserName")
                         .HasMaxLength(256);
@@ -379,6 +383,10 @@ namespace StorageAPI.Migrations
                         .IsUnique()
                         .HasName("UserNameIndex")
                         .HasFilter("[NormalizedUserName] IS NOT NULL");
+
+                    b.HasIndex("ReportsTo");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("AspNetUsers");
                 });
@@ -414,6 +422,8 @@ namespace StorageAPI.Migrations
                     b.Property<string>("UserId");
 
                     b.Property<Guid>("WarehouseId");
+
+                    b.Property<bool>("DoesUserHaveAbilityToSeeProductAmount");
 
                     b.HasKey("UserId", "WarehouseId");
 
@@ -552,7 +562,18 @@ namespace StorageAPI.Migrations
                     b.HasOne("StorageAPI.Models.Warehouse", "Warehouse")
                         .WithMany("WarehouseLogs")
                         .HasForeignKey("WarehouseId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("StorageAPI.Models.User", b =>
+                {
+                    b.HasOne("StorageAPI.Models.User", "Boss")
+                        .WithMany()
+                        .HasForeignKey("ReportsTo");
+
+                    b.HasOne("StorageAPI.Models.User")
+                        .WithMany("Employees")
+                        .HasForeignKey("UserId");
                 });
 
             modelBuilder.Entity("StorageAPI.Models.UserSettings", b =>

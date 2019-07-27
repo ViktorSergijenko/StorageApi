@@ -59,11 +59,25 @@ namespace StorageAPI.Migrations
                     AccessFailedCount = table.Column<int>(nullable: false),
                     FullName = table.Column<string>(nullable: false),
                     WhoCreated = table.Column<string>(nullable: true),
-                    HasAbilityToLoad = table.Column<bool>(nullable: false)
+                    HasAbilityToLoad = table.Column<bool>(nullable: false),
+                    ReportsTo = table.Column<string>(nullable: true),
+                    UserId = table.Column<string>(nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_AspNetUsers", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_AspNetUsers_AspNetUsers_ReportsTo",
+                        column: x => x.ReportsTo,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_AspNetUsers_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -294,7 +308,7 @@ namespace StorageAPI.Migrations
                         column: x => x.WarehouseId,
                         principalTable: "WarehouseDB",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -302,7 +316,8 @@ namespace StorageAPI.Migrations
                 columns: table => new
                 {
                     WarehouseId = table.Column<Guid>(nullable: false),
-                    UserId = table.Column<string>(nullable: false)
+                    UserId = table.Column<string>(nullable: false),
+                    DoesUserHaveAbilityToSeeProductAmount = table.Column<bool>(nullable: false)
                 },
                 constraints: table =>
                 {
@@ -355,7 +370,7 @@ namespace StorageAPI.Migrations
                         column: x => x.WarehouseId,
                         principalTable: "WarehouseDB",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -444,6 +459,16 @@ namespace StorageAPI.Migrations
                 column: "NormalizedUserName",
                 unique: true,
                 filter: "[NormalizedUserName] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AspNetUsers_ReportsTo",
+                table: "AspNetUsers",
+                column: "ReportsTo");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AspNetUsers_UserId",
+                table: "AspNetUsers",
+                column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Baskets_UserId",

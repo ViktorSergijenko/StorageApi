@@ -11,6 +11,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Cors;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
+using StorageAPI.ModelsVM;
+using AutoMapper.QueryableExtensions;
 
 namespace StorageAPI.Controllers
 {
@@ -39,12 +41,41 @@ namespace StorageAPI.Controllers
         /// <returns></returns>
         [HttpGet]
         [Authorize(AuthenticationSchemes = "Bearer")]
-        public async Task<ActionResult<List<Warehouse>>> GetAllWarehouses()
+        public async Task<ActionResult<List<WarehouseVM>>> GetAllWarehouses()
         {
             var userID = User.Claims.FirstOrDefault(x => x.Type == "UserID").Value;
-            var warehousesIds = await DB.UserWarehouseDB.Where(x => x.UserId == userID).Select(x => x.WarehouseId).ToListAsync();
-            var warehouseList = await DB.WarehouseDB.Where(x => warehousesIds.Any(y => y == x.Id)).ToListAsync();
-            return warehouseList;
+            //var warehousesIds = await DB.UserWarehouseDB.Where(x => x.UserId == userID).Select(x => x.WarehouseId).ToListAsync();
+
+            var warehouse = await DB.UserWarehouseDB.Where(x => x.UserId == userID)
+                .Include(x => x.Warehouse)
+                .ThenInclude(x => x.WarehouseLogs)
+                .OrderBy(x => x.WarehousePositionInTable)
+                .ToListAsync();
+
+            //var warehouse3 = await DB.UserWarehouseDB.Where(x => x.UserId == userID).ProjectTo<WarehouseVM>().ToListAsync();
+
+
+            //var warehouseList = Mapper.Map<List<WarehouseVM>>(await DB.WarehouseDB.Where(x => warehousesIds.Contains(x.Id)).ToListAsync());
+            return Mapper.Map<List<WarehouseVM>>(warehouse);
+        }
+
+        [HttpGet("position")]
+        public async Task<string> resolveProblemWhtPosition()
+        {
+            var userList = await DB.Users.Select(x => x.Id).ToListAsync();
+            foreach (var userId in userList)
+            {
+                int position = 1;
+                var userWarehouses = await DB.UserWarehouseDB.Include(x => x.Warehouse).Where(x => x.UserId == userId).ToListAsync();
+                foreach (var warehouse in userWarehouses)
+                {
+                    warehouse.WarehousePositionInTable = position++;
+                    DB.UserWarehouseDB.Update(warehouse);
+                }
+
+            }
+            await DB.SaveChangesAsync();
+            return "asd";
         }
 
         /// <summary>
@@ -61,6 +92,15 @@ namespace StorageAPI.Controllers
             return Ok(warehouse);
         }
 
+        [HttpPost("specific-user-warehouse")]
+        public async Task<ActionResult> GetUserWarehouseById(UserWarehouse userWarehouse)
+        {
+            // Getting warehouse by id
+            var specificUserWarehouse = await DB.UserWarehouseDB.FirstOrDefaultAsync(x => x.WarehouseId == userWarehouse.WarehouseId && x.UserId == userWarehouse.UserId);
+            // Returning warehouse 
+            return Ok(specificUserWarehouse);
+        }
+
         /// <summary>
         /// Method adds or modifies a  warehouse in DB
         /// </summary>
@@ -70,11 +110,12 @@ namespace StorageAPI.Controllers
         [Authorize(AuthenticationSchemes = "Bearer")]
         public async Task<ActionResult> CreateWarehouse([FromBody] Warehouse warehouse)
         {
+            var userId = User.Claims.FirstOrDefault(x => x.Type == "UserID").Value;
             var username = User.Claims.FirstOrDefault(x => x.Type == "FullName").Value;
             // Adding new warehouse by calling a method that will add it to DB
             var newWarehouse = await WarehouseService.SaveWarehouse(warehouse, username);
-                // Returning new warehouse
-                return Ok(newWarehouse);
+            // Returning new warehouse
+            return Ok(newWarehouse);
         }
 
         /// <summary>
@@ -157,5 +198,14 @@ namespace StorageAPI.Controllers
             var neededUserWarehouse = await DB.UserWarehouseDB.FirstOrDefaultAsync(x => x.WarehouseId == userWarehouse.WarehouseId && x.UserId == userWarehouse.UserId);
             return Ok(neededUserWarehouse);
         }
+
+        [HttpPost("change-position")]
+        [Authorize(AuthenticationSchemes = "Bearer")]
+        public async Task<ActionResult> ChangeWarehousePosition([FromBody] UserWarehouse userWarehouse)
+        {
+            await WarehouseService.ChangeWarehousePosition(userWarehouse);
+            return Ok();
+        }
+
     }
 }
