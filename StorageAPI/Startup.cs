@@ -46,8 +46,8 @@ namespace StorageAPI
             // @"Server=tcp:warehouse-manager.database.windows.net,1433;Initial Catalog=warehouse-db;Persist Security Info=False;User ID=viktor18021;Password=Bravo1996;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
             services.AddDbContext<StorageContext>(
                 opt => opt.UseSqlServer(@"Server=(localdb)\mssqllocaldb;Database=warehouse-db;Trusted_Connection=True;"));
-            // Adding Identity
-            
+                                         // Adding Identity
+
             services.AddIdentity<User, IdentityRole>(options =>
                 {
                     // Basic built in validations
@@ -84,12 +84,6 @@ namespace StorageAPI
                             ValidateIssuerSigningKey = true,
                         };
                     });
-            services.AddAuthorization(options =>
-            {
-                options.DefaultPolicy = new AuthorizationPolicyBuilder(JwtBearerDefaults.AuthenticationScheme)
-                .RequireAuthenticatedUser()
-                .Build();
-            });
             services.AddMvc()
                 .AddJsonOptions(o => o.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore)
                 .SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
@@ -136,6 +130,7 @@ namespace StorageAPI
             services.AddScoped<ProductService>();
             services.AddScoped<CatalogNameService>();
             services.AddScoped<SimpleLogTableServcie>();
+            services.AddScoped<CatalogTypeService>();
             AutoMapperConfig.RegisterMappings(services.BuildServiceProvider());
             #endregion Services injections
 

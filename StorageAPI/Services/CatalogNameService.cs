@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using StorageAPI.Models;
+using StorageAPI.ModelsVM;
 
 namespace StorageAPI.Services
 {
@@ -28,9 +29,9 @@ namespace StorageAPI.Services
         /// Method gets all Catalog names from DB
         /// </summary>
         /// <returns></returns>
-        public async Task<List<CatalogName>> GetCatalogNameList()
+        public async Task<List<CatalogName>> GetCatalogNameList(Guid id)
         {
-            var catalogList = await DB.CatalogNameDB.ToListAsync();
+            var catalogList = await DB.CatalogNameDB.Where(x => x.CatalogTypeId == id).ToListAsync();
             return catalogList;
         }
 
@@ -50,6 +51,9 @@ namespace StorageAPI.Services
             if (catalogName.Id == null || catalogName.Id.Equals(Guid.Empty))
             {
                 await DB.CatalogNameDB.AddAsync(catalogName);
+                var catalogType = await DB.CatalogTypeDB.FirstOrDefaultAsync(x => x.Id == catalogName.CatalogTypeId);
+                catalogType.Amount++;
+                DB.CatalogTypeDB.Update(catalogType);
                 await SimpleLogTableService.AddAdminLog($"Izveidoja kataloga nosaukumu: {catalogName.Name}", username);
 
             }
@@ -75,16 +79,35 @@ namespace StorageAPI.Services
                 // If it's not null, then we set this option to lover case
                 var filter = filterSorting.FilterOption.ToLower();
                 // Filtering our query, where warehouse address or name contains something similar to our option
-                catalogNameQuery = catalogNameQuery.Where(x => x.Name.ToLower().Contains(filter)).ToList();
+                catalogNameQuery = catalogNameQuery.Where(x => x.Name.ToLower().Contains(filter) && x.CatalogTypeId == filterSorting.CatalogTypeId).ToList();
             }
             else
             {
                 // TODO: This is only for short period of time, need to make functionality where user can chose by what field user can sort and in whick direction
                 // If our option is null, then we just sorting our query by name
-                catalogNameQuery = catalogNameQuery.OrderByDescending(x => x.Name).ToList();
+                catalogNameQuery = catalogNameQuery.Where(x => x.CatalogTypeId == filterSorting.CatalogTypeId)
+                    .OrderByDescending(x => x.Name)
+                    .ToList();
             }
             return catalogNameQuery;
         }
 
+        /// <summary>
+        /// Method gets all warehouses that stores catalogs with specific name
+        /// </summary>
+        /// <param name="catalogNameId">Catalog name id</param>
+        /// <returns>Warehouse list</returns>
+        public async Task<List<WarehouseVM>> GetWarehousesThatHasCatalogsWithSpecificName(Guid catalogNameId)
+        {
+            // Getting and returning all warehouses that stores catalogs with specific name
+            return await DB.WarehouseDB.Where(x => x.Catalogs.Any(y => y.CatalogNameId == catalogNameId))
+                .Select(x=> new WarehouseVM()
+                {
+                    Id = x.Id,
+                    Address = x.Address,
+                    Name = x.Name
+                })
+                .ToListAsync();         
+        }
     }
 }

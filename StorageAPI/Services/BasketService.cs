@@ -197,7 +197,6 @@ namespace StorageAPI.Services
                 var nameForCatalog = await DB.CatalogNameDB.FirstOrDefaultAsync(x => x.Name == catalogName);
                 newCatalog.CatalogNameId = nameForCatalog.Id;
                 newCatalog.BasketId = basket.Id;
-                newCatalog.Type = catalogFromWarehouse.Type;
                 // Adding it to DB
                 await DB.CatalogDB.AddAsync(newCatalog);
             // Saving all changes in DB

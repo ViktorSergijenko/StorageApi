@@ -16,6 +16,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using StorageAPI.Configs;
+using StorageAPI.Constants;
 using StorageAPI.Context;
 using StorageAPI.Models;
 using StorageAPI.ModelsVM;
@@ -50,7 +51,7 @@ namespace StorageAPI.Controllers
         [HttpGet]
         public async Task<string> Get()
         {
-           var isThereAnyUserInDb = await DB.Users.AnyAsync();
+            var isThereAnyUserInDb = await DB.Users.AnyAsync();
             var allUsers = await userManager.Users.ToListAsync();
             if (!isThereAnyUserInDb)
             {
@@ -59,14 +60,15 @@ namespace StorageAPI.Controllers
                 await roleManager.CreateAsync(new IdentityRole("Level three"));
                 await roleManager.CreateAsync(new IdentityRole("Level four"));
                 var roleForAdmin = await roleManager.FindByNameAsync("Level one");
-                RegisterVM registerInfo = new RegisterVM {
+                RegisterVM registerInfo = new RegisterVM
+                {
                     Email = "root@root.com",
                     FullName = "Admin Admin",
                     Password = "P@ssw0rd",
                     PasswordConfirm = "P@ssw0rd",
                     HasAbilityToLoad = true
                 };
-                User newUser = new User { Email = registerInfo.Email, FullName = registerInfo.FullName, UserName = registerInfo.Email, HasAbilityToLoad = true};
+                User newUser = new User { Email = registerInfo.Email, FullName = registerInfo.FullName, UserName = registerInfo.Email, HasAbilityToLoad = true };
                 var addedUser = await userManager.CreateAsync(newUser, registerInfo.Password);
                 if (addedUser.Succeeded)
                 {
@@ -76,7 +78,8 @@ namespace StorageAPI.Controllers
                         UserId = newUser.Id
                     };
                     await DB.Baskets.AddAsync(newBasket);
-                    UserSettings userSettings = new UserSettings() {
+                    UserSettings userSettings = new UserSettings()
+                    {
                         CanAddProductsManually = true,
                         CanDeleteUsers = true,
                         CanEditUserBaskets = true,
@@ -84,7 +87,7 @@ namespace StorageAPI.Controllers
                         CanEditUserPassword = true,
                         UserId = newUser.Id
                     };
-                   await DB.UserSettingsDB.AddAsync(userSettings);
+                    await DB.UserSettingsDB.AddAsync(userSettings);
 
 
                     await userManager.AddToRoleAsync(newUser, "Level one");
@@ -521,6 +524,29 @@ namespace StorageAPI.Controllers
                 }
             }
             return Ok(model);
+        }
+        [HttpGet("second-role-users")]
+        [Authorize(AuthenticationSchemes = "Bearer")]
+        public async Task<ActionResult> GetAllUsersWithSecondRole()
+        {
+           var usersWithLevelTwoRole = await userManager.GetUsersInRoleAsync(StorageConstants.Role_SecondLevel);
+            var secondRoleId = await roleManager.FindByNameAsync(StorageConstants.Role_SecondLevel);
+
+            List<UserVM> userVMs = new List<UserVM>();
+            foreach (var x in usersWithLevelTwoRole)
+            {
+                UserVM userWithRole = new UserVM
+                {
+                    Id = x.Id,
+                    FullName = x.FullName,
+                    Email = x.Email,
+                    RoleName = secondRoleId.Name,
+                    HasAbilityToLoad = x.HasAbilityToLoad,
+                    ReportsTo = x.ReportsTo
+                };
+                userVMs.Add(userWithRole);
+            }
+            return Ok(userVMs);
         }
     }
 }

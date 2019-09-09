@@ -11,8 +11,10 @@ namespace StorageAPI.Models
     {
         public User()
         {
+            CatalogNames = new List<CatalogName>();
             UserWarehouse = new List<UserWarehouse>();
             Employees = new List<User>();
+            CatalogTypes = new List<CatalogType>();
         }
         /// <summary>
         /// User full name
@@ -33,6 +35,15 @@ namespace StorageAPI.Models
         /// List of employees to that this employee is marked as a boss
         /// </summary>
         public List<User> Employees { get; set; }
+        /// <summary>
+        /// List of Catalog names that he created
+        /// </summary>
+        public List<CatalogName> CatalogNames { get; set; }
+        /// <summary>
+        /// List of catalog types that he created
+        /// </summary>
+        public List<CatalogType> CatalogTypes { get; set; }
+
 
 
     }

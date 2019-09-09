@@ -49,7 +49,9 @@ namespace StorageAPI.Controllers
             var warehouse = await DB.UserWarehouseDB.Where(x => x.UserId == userID)
                 .Include(x => x.Warehouse)
                 .ThenInclude(x => x.WarehouseLogs)
-                .OrderBy(x => x.WarehousePositionInTable)
+                .OrderByDescending(x => x.Warehouse.HasProblems)
+                .ThenByDescending(x => x.Warehouse.HasMinCatalogs)
+                .ThenBy(x => x.WarehousePositionInTable)
                 .ToListAsync();
 
             //var warehouse3 = await DB.UserWarehouseDB.Where(x => x.UserId == userID).ProjectTo<WarehouseVM>().ToListAsync();

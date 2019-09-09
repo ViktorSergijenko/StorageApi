@@ -20,6 +20,8 @@ namespace StorageAPI.ModelsVM
         /// Flag that indicates does warehouse have some kind of problems
         /// </summary>
         public bool HasProblems { get; set; }
+        public bool HasMinCatalogs { get; set; }
+
         public string WarehouseLogs { get; set; }
         public int WarehousePositionInTable { get; set; }
     }

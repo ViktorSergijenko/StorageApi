@@ -17,6 +17,8 @@ namespace StorageAPI.Models
         public int Amount { get; set; }
         public List<Catalog> CatalogList { get; set; }
         public CatalogType CatalogType { get; set; }
-        public Guid CatalogTypeId { get; set; }
+        public Guid? CatalogTypeId { get; set; }
+        public User UserThatCreated { get; set; }
+        public string UserId { get; set; }
     }
 }

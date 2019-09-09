@@ -182,8 +182,6 @@ namespace StorageAPI.Migrations
 
                     b.Property<decimal>("ProductPrice");
 
-                    b.Property<bool>("Type");
-
                     b.Property<Guid?>("WarehouseId");
 
                     b.HasKey("Id");
@@ -206,15 +204,41 @@ namespace StorageAPI.Migrations
 
                     b.Property<int>("Amount");
 
+                    b.Property<Guid?>("CatalogTypeId");
+
                     b.Property<string>("Name")
+                        .IsRequired();
+
+                    b.Property<string>("UserId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CatalogTypeId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("CatalogNameDB");
+                });
+
+            modelBuilder.Entity("StorageAPI.Models.CatalogType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd();
+
+                    b.Property<int>("Amount");
+
+                    b.Property<string>("Name");
+
+                    b.Property<string>("UserId")
                         .IsRequired();
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Name")
-                        .IsUnique();
+                    b.HasIndex("UserId", "Name")
+                        .IsUnique()
+                        .HasFilter("[Name] IS NOT NULL");
 
-                    b.ToTable("CatalogNameDB");
+                    b.ToTable("CatalogTypeDB");
                 });
 
             modelBuilder.Entity("StorageAPI.Models.News", b =>
@@ -531,6 +555,25 @@ namespace StorageAPI.Migrations
                         .WithMany("Catalogs")
                         .HasForeignKey("WarehouseId")
                         .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("StorageAPI.Models.CatalogName", b =>
+                {
+                    b.HasOne("StorageAPI.Models.CatalogType", "CatalogType")
+                        .WithMany("CatalogNameList")
+                        .HasForeignKey("CatalogTypeId");
+
+                    b.HasOne("StorageAPI.Models.User", "UserThatCreated")
+                        .WithMany("CatalogNames")
+                        .HasForeignKey("UserId");
+                });
+
+            modelBuilder.Entity("StorageAPI.Models.CatalogType", b =>
+                {
+                    b.HasOne("StorageAPI.Models.User", "User")
+                        .WithMany("CatalogTypes")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade);
                 });
 
             modelBuilder.Entity("StorageAPI.Models.News", b =>

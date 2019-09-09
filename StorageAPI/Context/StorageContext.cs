@@ -77,9 +77,32 @@ namespace StorageAPI.Context
                 .WithMany(x => x.CatalogNameList)
                 .HasForeignKey(x => x.CatalogTypeId)
                 ;
+            modelBuilder.Entity<CatalogName>()
+                .HasOne(x => x.UserThatCreated)
+                .WithMany(x => x.CatalogNames)
+                .HasForeignKey(x => x.UserId)
+                ;
+            modelBuilder.Entity<CatalogType>()
+                .HasOne(x => x.User)
+                .WithMany(x => x.CatalogTypes)
+                .HasForeignKey(x => x.UserId)
+                ;
+            modelBuilder.Entity<CatalogType>()
+                    .HasMany(x => x.CatalogNameList)
+                    .WithOne(x => x.CatalogType)
+                    .HasForeignKey(x => x.CatalogTypeId)
+                    ;
+
             modelBuilder.Entity<Catalog>()
-                .HasIndex(x => new { x.CatalogNameId, x.WarehouseId }).IsUnique();
-           
+                .HasIndex(x => new { x.CatalogNameId, x.WarehouseId })
+                .IsUnique()
+                ;
+
+            modelBuilder.Entity<CatalogType>()
+               .HasIndex(x => new { x.UserId, x.Name })
+               .IsUnique()
+               ;
+
             #endregion Catalog model builder
 
             #region User model builder

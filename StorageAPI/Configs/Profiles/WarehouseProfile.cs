@@ -20,6 +20,8 @@ namespace StorageAPI.Configs.Profiles
                 .ForMember(x => x.HasProblems, o => o.MapFrom(x => x.Warehouse.HasProblems))
                 .ForMember(x => x.Name, o => o.MapFrom(x => x.Warehouse.Name))
                 .ForMember(x => x.Address, o => o.MapFrom(x => x.Warehouse.Address))
+                .ForMember(x => x.HasMinCatalogs, o => o.MapFrom(x => x.Warehouse.HasMinCatalogs))
+
                 //.ForMember(x => x.WarehousePositionInTable, o => o.MapFrom(x => x.WarehousePositionInTable))
                 ;
         }

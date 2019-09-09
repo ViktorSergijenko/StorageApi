@@ -8,5 +8,6 @@ namespace StorageAPI.Models
     public class FilterSorting
     {
         public string FilterOption { get; set; }
+        public Guid CatalogTypeId { get; set; }
     }
 }

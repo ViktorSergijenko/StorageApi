@@ -34,10 +34,10 @@ namespace StorageAPI.Controllers
 
 
         // GET: api/CatalogName/5
-        [HttpGet]
-        public async Task<ActionResult> Get()
+        [HttpGet("{id}")]
+        public async Task<ActionResult> Get(Guid id)
         {
-            var cataqlogNameList = await CatalogNameService.GetCatalogNameList();
+            var cataqlogNameList = await CatalogNameService.GetCatalogNameList(id);
             if (cataqlogNameList.Count == 0)
             {
                 return BadRequest(new { message = "There is no catalog names." });
@@ -81,10 +81,19 @@ namespace StorageAPI.Controllers
             else
             {
                 DB.CatalogNameDB.Remove(objectToDelete);
+                var catalogType = await DB.CatalogTypeDB.FirstOrDefaultAsync(x => x.Id == objectToDelete.CatalogTypeId);
+                catalogType.Amount--;
+                DB.CatalogTypeDB.Update(catalogType);
                 await SimpleLogTableService.AddAdminLog($"Nodzesa kataloga nosaukumu: {objectToDelete.Name}", username);
 
             }
             return Ok();
+        }
+
+        [HttpGet("warehouses/{catalogNameId}")]
+        public async Task<ActionResult> GetWarehousesThatStoresCatalogWithSpecificName(Guid catalogNameId)
+        {
+            return Ok(await CatalogNameService.GetWarehousesThatHasCatalogsWithSpecificName(catalogNameId));
         }
     }
 }

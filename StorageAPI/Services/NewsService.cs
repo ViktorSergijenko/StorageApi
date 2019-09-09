@@ -167,7 +167,7 @@ namespace StorageAPI.Services
                 // Saving changes in DB, because next step will also include DB operations
                 await DB.SaveChangesAsync();
                 // Checking does house in that we just toggled flag, still hase some news/problems that was not resolved
-                var hasProblems = await DB.WarehouseDB.AnyAsync(x => x.News.Any(o => o.FixedProblem != true));
+                var hasProblems = await DB.WarehouseDB.AnyAsync(x => x.News.Any(o => o.FixedProblem != true && o.WarehouseId == warehouseNews.WarehouseId));
                 if (hasProblems)
                 {
                     // If has, then we get this house and change it flag hasProblems to true

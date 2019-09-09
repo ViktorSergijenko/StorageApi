@@ -61,7 +61,6 @@ namespace StorageAPI.Controllers
                     MinimumAmount = catalogFromDB.MinimumAmount,
                     WarehouseId = catalogFromDB.WarehouseId,
                     Name = catalogFromDB.Name.Name,
-                    Type = catalogFromDB.Type
 
                 };
                 var log = new SimpleLogTable()
@@ -104,7 +103,6 @@ namespace StorageAPI.Controllers
                     MinimumAmount = catalogFromDB.MinimumAmount,
                     WarehouseId = catalogFromDB.WarehouseId,
                     Name = catalogFromDB.Name.Name,
-                    Type = catalogFromDB.Type
 
                 };
                 var log = new SimpleLogTable()

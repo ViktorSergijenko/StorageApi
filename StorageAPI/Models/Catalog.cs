@@ -62,7 +62,26 @@ namespace StorageAPI.Models
         /// List of products
         /// </summary>
         public List<Product> Products { get; set; }
-        [Required]
-        public bool Type { get; set; }
+
+    }
+
+    /// <summary>
+    /// Class that is used to filtrate right catalogs for warehouse
+    /// </summary>
+    public class WarehouseCatalogFiltrationByType
+    {
+        /// <summary>
+        /// Id of an warehouse that catalogs we need to get
+        /// </summary>
+        public Guid WarehouseId { get; set; }
+        /// <summary>
+        /// Id of a catalog type that we need to get
+        /// </summary>
+        public Guid CatalogTypeId { get; set; }
+        /// <summary>
+        /// Id of an basket catalogs that we want to get
+        /// </summary>
+        public Guid BasketId { get; set; }
+        public string UserId { get; set; }
     }
 }

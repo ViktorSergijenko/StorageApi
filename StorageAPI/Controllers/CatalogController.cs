@@ -64,11 +64,11 @@ namespace StorageAPI.Controllers
         /// </summary>
         /// <param name="id">Id of a Catalog that we want to get</param>
         /// <returns>Ok status with an Catalog object</returns>
-        [HttpGet("warehouse/{id}")]
-        public async Task<ActionResult> GetCatalogByWarehouseId(Guid id)
+        [HttpPost("warehouse")]
+        public async Task<ActionResult> GetCatalogByWarehouseId([FromBody] WarehouseCatalogFiltrationByType catalogFiltrater)
         {
             // Getting Catalog by id
-            var catalogsList = await CatalogService.GetCatatolgListByWarehouseId(id);
+            var catalogsList = await CatalogService.GetCatatolgListByWarehouseId(catalogFiltrater);
             List<CatalogVM> catalogListVM = new List<CatalogVM>();
             catalogsList.ForEach(x => {
                 var catalogVM = new CatalogVM
@@ -80,7 +80,6 @@ namespace StorageAPI.Controllers
                     MinimumAmount = x.MinimumAmount,
                     WarehouseId = x.WarehouseId,
                     Name = x.Name.Name,
-                    Type = x.Type
                 };
 
                 catalogListVM.Add(catalogVM);
@@ -93,11 +92,11 @@ namespace StorageAPI.Controllers
         /// </summary>
         /// <param name="id">Id of a Catalog that we want to get</param>
         /// <returns>Ok status with an Catalog object</returns>
-        [HttpGet("basket/{id}")]
-        public async Task<ActionResult> GetCatalogByBasketId(Guid id)
+        [HttpPost("basket")]
+        public async Task<ActionResult> GetCatalogByBasketId([FromBody] WarehouseCatalogFiltrationByType catalogFiltrator)
         {
             // Getting Catalog by basket id
-            var Catalog = await CatalogService.GetCatatolgListByBasketeId(id);
+            var Catalog = await CatalogService.GetCatatolgListByBasketeId(catalogFiltrator);
             List<CatalogVM> catalogListVM = new List<CatalogVM>();
             Catalog.ForEach(x => {
                 var catalogVM = new CatalogVM
@@ -109,7 +108,6 @@ namespace StorageAPI.Controllers
                     MinimumAmount = x.MinimumAmount,
                     WarehouseId = x.WarehouseId,
                     Name = x.Name.Name,
-                    Type = x.Type
                 };
 
                 catalogListVM.Add(catalogVM);
@@ -118,11 +116,11 @@ namespace StorageAPI.Controllers
             return Ok(catalogListVM);
         }
 
-        [HttpGet("basket-user-id/{id}")]
-        public async Task<ActionResult> GetCatalogByUserId(string id)
+        [HttpPost("basket-user-id")]
+        public async Task<ActionResult> GetCatalogByUserId([FromBody]WarehouseCatalogFiltrationByType catalogFiltrator)
         {
             // Getting Catalog by basket id
-            var Catalog = await CatalogService.GetCatatolgListByUserId(id);
+            var Catalog = await CatalogService.GetCatatolgListByUserId(catalogFiltrator);
             List<CatalogVM> catalogListVM = new List<CatalogVM>();
             Catalog.ForEach(x => {
                 var catalogVM = new CatalogVM
@@ -134,7 +132,6 @@ namespace StorageAPI.Controllers
                     MinimumAmount = x.MinimumAmount,
                     WarehouseId = x.WarehouseId,
                     Name = x.Name.Name,
-                    Type = x.Type
 
                 };
 
@@ -166,7 +163,7 @@ namespace StorageAPI.Controllers
                 MaximumAmount = Catalog.MaximumAmount,
                 MinimumAmount = Catalog.MinimumAmount,
                 WarehouseId = Catalog.WarehouseId,
-                Type = Catalog.Type
+                CatalogNameId = Catalog.CatalogNameId
             };
             // Adding new Catalog by calling a method that will add it to DB
             var newCatalog = await CatalogService.SaveCatalog(catalog, username);
@@ -227,7 +224,6 @@ namespace StorageAPI.Controllers
                     MinimumAmount = catalogFromDB.MinimumAmount,
                     WarehouseId = catalogFromDB.WarehouseId,
                     Name = catalogFromDB.Name.Name,
-                    Type = catalogFromDB.Type
 
                  };
                 var log = new SimpleLogTable()
@@ -268,7 +264,6 @@ namespace StorageAPI.Controllers
                     MinimumAmount = catalogFromDB.MinimumAmount,
                     WarehouseId = catalogFromDB.WarehouseId,
                     Name = catalogFromDB.Name.Name,
-                    Type = catalogFromDB.Type
 
                 };
                 var log = new SimpleLogTable()

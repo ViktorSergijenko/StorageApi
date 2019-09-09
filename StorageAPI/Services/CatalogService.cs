@@ -47,10 +47,13 @@ namespace StorageAPI.Services
             }
         }
 
-        public async Task<List<Catalog>> GetCatatolgListByWarehouseId(Guid id)
+        public async Task<List<Catalog>> GetCatatolgListByWarehouseId(WarehouseCatalogFiltrationByType catalogFiltrater)
         {
             // Getting catalog list with a specifick warehouse id
-            var catalog = await DB.CatalogDB.Include(x => x.Name).Where(x => x.WarehouseId == id).ToListAsync();
+            var catalog = await DB.CatalogDB
+                .Include(x => x.Name)
+                .Where(x => x.WarehouseId == catalogFiltrater.WarehouseId && x.Name.CatalogTypeId == catalogFiltrater.CatalogTypeId)
+                .ToListAsync();
             // Checking if it's not null
             if (catalog == null)
             {
@@ -64,10 +67,14 @@ namespace StorageAPI.Services
             }
         }
 
-        public async Task<List<Catalog>> GetCatatolgListByBasketeId(Guid id)
+        public async Task<List<Catalog>> GetCatatolgListByBasketeId(WarehouseCatalogFiltrationByType catalogFiltrator)
         {
             // Getting catalog list with a specifick warehouse id
-            var catalogs = await DB.CatalogDB.Include(x => x.Name).Where(x => x.BasketId == id).ToListAsync();
+            var catalogs = await DB.CatalogDB
+                .Include(x => x.Name)
+                .ThenInclude(x => x.CatalogType)
+                .Where(x => x.BasketId == catalogFiltrator.BasketId && x.Name.CatalogTypeId == catalogFiltrator.CatalogTypeId)
+                .ToListAsync();
             // Checking if it's not null
             if (catalogs == null)
             {
@@ -81,11 +88,11 @@ namespace StorageAPI.Services
             }
         }
 
-        public async Task<List<Catalog>> GetCatatolgListByUserId(string id)
+        public async Task<List<Catalog>> GetCatatolgListByUserId(WarehouseCatalogFiltrationByType catalogFiltrator)
         {
-            var basket = await DB.Baskets.FirstOrDefaultAsync(x => x.UserId == id);
+            var basket = await DB.Baskets.FirstOrDefaultAsync(x => x.UserId == catalogFiltrator.UserId);
             // Getting catalog list with a specifick warehouse id
-            var catalogs = await DB.CatalogDB.Include(x => x.Name).Where(x => x.BasketId == basket.Id).ToListAsync();
+            var catalogs = await DB.CatalogDB.Include(x => x.Name).Where(x => x.BasketId == basket.Id && x.Name.CatalogTypeId == catalogFiltrator.CatalogTypeId).ToListAsync();
             // Checking if it's not null
             if (catalogs == null)
             {
@@ -105,7 +112,7 @@ namespace StorageAPI.Services
             // If catalog does not have id, that means that it's a new entity, and we need an add functionality
             if (catalog.Id == null || catalog.Id.Equals(Guid.Empty))
             {
-                var catalogName = await DB.CatalogNameDB.FirstOrDefaultAsync(x => x.Name == catalog.Name.Name);
+                var catalogName = await DB.CatalogNameDB.FirstOrDefaultAsync(x => x.Id == catalog.CatalogNameId);
                 
 
 
@@ -152,7 +159,6 @@ namespace StorageAPI.Services
                 catalogFromDb.MaximumAmount = catalog.MaximumAmount;
                 catalogFromDb.MinimumAmount = catalog.MinimumAmount;
                 catalogFromDb.ProductPrice = catalog.ProductPrice;
-                catalogFromDb.Type = catalog.Type;
                 // Updating DB
                 DB.CatalogDB.Update(catalogFromDb);
                 // Saving changes in DB

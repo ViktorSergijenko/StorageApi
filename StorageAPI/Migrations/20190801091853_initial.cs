@@ -81,19 +81,6 @@ namespace StorageAPI.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "CatalogNameDB",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(nullable: false),
-                    Name = table.Column<string>(nullable: false),
-                    Amount = table.Column<int>(nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_CatalogNameDB", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "WarehouseDB",
                 columns: table => new
                 {
@@ -237,6 +224,26 @@ namespace StorageAPI.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "CatalogTypeDB",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(nullable: false),
+                    Name = table.Column<string>(nullable: true),
+                    UserId = table.Column<string>(nullable: false),
+                    Amount = table.Column<int>(nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CatalogTypeDB", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_CatalogTypeDB_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "UserSettingsDB",
                 columns: table => new
                 {
@@ -317,7 +324,8 @@ namespace StorageAPI.Migrations
                 {
                     WarehouseId = table.Column<Guid>(nullable: false),
                     UserId = table.Column<string>(nullable: false),
-                    DoesUserHaveAbilityToSeeProductAmount = table.Column<bool>(nullable: false)
+                    DoesUserHaveAbilityToSeeProductAmount = table.Column<bool>(nullable: false),
+                    WarehousePositionInTable = table.Column<int>(nullable: false)
                 },
                 constraints: table =>
                 {
@@ -332,6 +340,54 @@ namespace StorageAPI.Migrations
                         name: "FK_UserWarehouseDB_WarehouseDB_WarehouseId",
                         column: x => x.WarehouseId,
                         principalTable: "WarehouseDB",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "CatalogNameDB",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(nullable: false),
+                    Name = table.Column<string>(nullable: false),
+                    Amount = table.Column<int>(nullable: false),
+                    CatalogTypeId = table.Column<Guid>(nullable: true),
+                    UserId = table.Column<string>(nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CatalogNameDB", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_CatalogNameDB_CatalogTypeDB_CatalogTypeId",
+                        column: x => x.CatalogTypeId,
+                        principalTable: "CatalogTypeDB",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_CatalogNameDB_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "NewsCommentDB",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(nullable: false),
+                    Author = table.Column<string>(nullable: true),
+                    Date = table.Column<DateTime>(nullable: false),
+                    NewsId = table.Column<Guid>(nullable: false),
+                    Comment = table.Column<string>(nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_NewsCommentDB", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_NewsCommentDB_NewsDB_NewsId",
+                        column: x => x.NewsId,
+                        principalTable: "NewsDB",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -371,27 +427,6 @@ namespace StorageAPI.Migrations
                         principalTable: "WarehouseDB",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "NewsCommentDB",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(nullable: false),
-                    Author = table.Column<string>(nullable: true),
-                    Date = table.Column<DateTime>(nullable: false),
-                    NewsId = table.Column<Guid>(nullable: false),
-                    Comment = table.Column<string>(nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_NewsCommentDB", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_NewsCommentDB_NewsDB_NewsId",
-                        column: x => x.NewsId,
-                        principalTable: "NewsDB",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -495,10 +530,21 @@ namespace StorageAPI.Migrations
                 filter: "[WarehouseId] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
-                name: "IX_CatalogNameDB_Name",
+                name: "IX_CatalogNameDB_CatalogTypeId",
                 table: "CatalogNameDB",
-                column: "Name",
-                unique: true);
+                column: "CatalogTypeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CatalogNameDB_UserId",
+                table: "CatalogNameDB",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CatalogTypeDB_UserId_Name",
+                table: "CatalogTypeDB",
+                columns: new[] { "UserId", "Name" },
+                unique: true,
+                filter: "[Name] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_NewsCommentDB_NewsId",
@@ -591,6 +637,9 @@ namespace StorageAPI.Migrations
 
             migrationBuilder.DropTable(
                 name: "WarehouseDB");
+
+            migrationBuilder.DropTable(
+                name: "CatalogTypeDB");
 
             migrationBuilder.DropTable(
                 name: "AspNetUsers");
